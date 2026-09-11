@@ -1,0 +1,9 @@
+[package]
+name = "cell-model"
+version.workspace = true
+edition.workspace = true
+license-file.workspace = true
+
+[dependencies]
+nox.workspace = true
+hemera.workspace = true

@@ -1,0 +1,12 @@
+[package]
+name = "cell-rune"
+version.workspace = true
+edition.workspace = true
+license-file.workspace = true
+[dependencies]
+cell-engine.workspace = true
+rune-ast.workspace = true
+rune-interp.workspace = true
+rune-subject.workspace = true
+rune-parse.workspace = true
+rune-lower.workspace = true

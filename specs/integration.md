@@ -17,8 +17,9 @@ spec-version: "0.2"
 | cell prysm | View binding and input event conversion |
 | cell CLI | Headless composition exercising the production contracts |
 
-Separate Rust crates follow these dependency boundaries when implementation
-begins. Model has no Bevy/application dependency. Engine consumes ports.
+Separate Rust crates now follow these dependency boundaries for model, engine,
+node, rune and CLI. The prysm adapter is pending. Model has no Bevy/application
+dependency. Engine consumes ports.
 Node/adapters compose existing stack crates. Published and workspace consumers
 use one extracted implementation.
 
@@ -48,6 +49,12 @@ The word log may also occur in storage's write-ahead log or signal log; those
 refer to physical/protocol data structures. They do not create a new organ owner.
 
 ## required upstream work
+
+The source evidence below records the initial audit. The first implementation
+adds a local application API to cybergraph/BBG and a bounded runtime to rune;
+[implementation status](../docs/implementation.md) records tested coverage.
+The new private local transaction path does not repair the legacy public
+SignalChain writer or shard-cache interfaces. Their gates remain below.
 
 | Boundary | Current source evidence | Required contract |
 |---|---|---|

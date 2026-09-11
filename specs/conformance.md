@@ -100,7 +100,8 @@ base Subject(now=11, here=12, caps=13) yields Host caps=11 through run_cell,
 and two sequential ordinary acts yield caps 13 then 12.
 The integrated runtime/ward suite must instead show the same correct host-bound
 grant across all paths, while forged subject caps never widen that grant.
-This is a required regression test, not evidence of a current fix.
+The first implementation includes this regression in rune's authority suite;
+the [coverage report](../docs/conformance-local.md) scopes the resulting claim.
 
 ## model exploration
 

@@ -1,0 +1,22 @@
+[workspace]
+members = ["model", "engine", "rune", "node", "cli"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license-file = "LICENSE"
+
+[workspace.dependencies]
+cell-model = { path = "model" }
+cell-engine = { path = "engine" }
+cell-rune = { path = "rune" }
+cell-node = { path = "node" }
+cybergraph = { path = "../cybergraph", features = ["local-storage"] }
+nox = { package = "cyber-nox", path = "../nox/rs" }
+hemera = { package = "cyber-hemera", path = "../hemera/rs" }
+rune-ast = { path = "../rune/rs/ast" }
+rune-interp = { path = "../rune/rs/interp" }
+rune-subject = { path = "../rune/rs/subject" }
+rune-parse = { path = "../rune/rs/parse" }
+rune-lower = { path = "../rune/rs/lower" }

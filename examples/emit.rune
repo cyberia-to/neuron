@@ -1,0 +1,2 @@
+let view = emit(event);
+~mem + event

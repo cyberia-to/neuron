@@ -38,6 +38,7 @@ own protocols, with explicit requirements at the cell boundary.
 | [Agent composition](agent.md) | Context, tasks, tools, learning, workspace, schedules and delivery |
 | [Conformance](conformance.md) | Required behavioral and failure checks |
 | [Evaluation](evaluation.md) | Full-agent parity inventory and measurable superiority gates |
+| [Experimental local runtime](local-runtime.md) | Implemented subset, exact wire suite, limits and remaining baseline gates |
 
 ## governing decisions
 
@@ -66,8 +67,9 @@ own protocols, with explicit requirements at the cell boundary.
 The [0.2 review](../docs/foundations-agent-review.md) records the rationale.
 This revision changes draft Event/Continuation/Query fields, RunStep resource
 reporting and schema identity binding.
-There is no released wire format; /1 names are reserved aliases whose immutable
-manifest identities must be pinned before implementation compatibility claims.
+The experimental local implementation pins [schema suite 1](../model/schema-suite-v1.txt).
+The generic /1 names remain aliases; a reader checks immutable manifest identity.
+This local suite is not a registered network wire release.
 
 ## completeness and dependency status
 

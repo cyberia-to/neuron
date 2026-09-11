@@ -1,0 +1,106 @@
+cell local schema suite revision 1
+
+These UTF-8 bytes are an immutable local wire contract. Any incompatible change
+requires a new suite, new schema identities and an explicit migration reader.
+Documentation, source filenames and mutable aliases do not participate in IDs.
+
+Hash and data:
+  blob = hemera byte hash (cyber-hemera 0.3).
+  data = Nox Model B (cyber-nox 0.2): atom canonical Goldilocks u64 LE;
+         pair two ordered 32-byte child particles. Reject noncanonical limbs.
+  fields(x...) = right-cons data list terminated by atom zero.
+  uint = pair(atom(value >> 32), atom(value & 0xffffffff)).
+  particle = balanced [[h0 h1] [h2 h3]], four canonical u64 LE digest limbs.
+  ref = particle value, not structural dereference.
+  optional(T) = [0 0] for None, [1 T] for Some.
+  sequence(T) = [uint(length) fields(T...)].
+  text = sequence(byte atoms), valid UTF-8, maximum 4096 bytes.
+  nonce = fields(eight u32 LE words of 32 bytes), preserving arbitrary bytes.
+  map = sequence(pair(ref(key), ref(value))) sorted by key bytes, no duplicates.
+  manifest(name) = pair(atom(0x53434831), fields(text(name), ref(blob(this file)))).
+  record(name, values...) = pair(ref(manifest(name)), fields(values...)).
+  variant(domain/name) = record(cell/domain/name/1, declared variant fields).
+  schema names below end in /1. All records reject extra/missing fields.
+
+Records (ordered fields; ref/optional/sequence annotations are wire forms):
+cell/artifact/1(content:ref, codec:ref, byte_length:uint, media_type:text)
+cell/head/1(index:uint, commit:ref)
+cell/definition/1(revision:uint, runtime:ref, code:ref, state_schema:ref,
+  entries:sequence(entry record), required_artifacts:sequence(ref), policy:ref,
+  resources:ref, checkpoint_schema:optional(ref), presentation:optional(ref),
+  extensions:sequence(ref))
+cell/entry/1(name:text, input_schema:ref, output_schema:ref, behavior:variant)
+cell/resource-contract/1(limits:sequence(pair(ref(metric), uint)),
+  yield_interval:uint, overflow_policy:variant)
+cell/profile/1(kind:variant, identity_rule:ref, authorization_rule:ref,
+  ordering_rule:ref, evidence_rule:ref, finality_rule:ref, availability_rule:ref,
+  retention_rule:ref, extensions:sequence(ref))
+cell/birth/1(revision:uint, nonce:nonce, authority:ref, definition:ref,
+  profile:ref, initial_snapshot:ref, parent:optional(ref))
+cell/snapshot/1(definition:ref, application_state:ref, lifecycle:variant,
+  authority_policy:ref, profile:ref, epoch:uint, inbox:ref, continuations:ref,
+  outbox:ref, subscriptions:ref, management:ref)
+cell/event/1(origin:ref, nonce:nonce, cell:ref, entry:text, payload:ref,
+  context:optional(ref), causation:sequence(ref), time:optional(ref),
+  deadline:optional(ref), authority:ref)
+cell/request-id/1(origin:ref, nonce:nonce)
+cell/system-nonce/1(cell:ref, base_commit:ref, kind:text)
+cell/commit/1(cell:ref, index:uint, previous:ref, before:ref, after:ref,
+  events:sequence(ref), operations:sequence(ref), authority:ref, epoch:uint,
+  evidence:sequence(ref))
+cell/local-policy/1(owner:ref, step_limit:uint, allowed_acts:sequence(uint))
+cell/local-authorization/1(cell:ref, operation_record:ref, policy:ref, epoch:uint)
+cell/local-denial/1(cell:ref, operation_record:ref, policy:ref, epoch:uint, reason:ref)
+cell/local-resources/1(charged:uint, reserved:uint, checkpoint_used:uint, limit:uint)
+cell/inbox-entry/1(event:ref, status:variant, invocation:optional(ref), last_index:uint)
+cell/outbox-entry/1(operation:ref, stage:variant, attempts:sequence(ref),
+  outcome:optional(ref), consumed_by:optional(ref))
+cell/continuation/1(definition:ref, runtime:ref, checkpoint_schema:ref,
+  checkpoint:ref, trigger:variant, base_head:ref, invocation:ref,
+  context:optional(ref), resources_used:ref)
+cell/operation-id/1(cell:ref, base_commit:ref, invocation:ref, ordinal:uint)
+cell/operation/1(id:ref, invocation:ref, target:variant, act:ref, arguments:ref,
+  policy:ref, result_schema:ref, deadline:optional(ref), retry:variant,
+  finality:ref, checkpoint:optional(ref))
+cell/attempt-id/1(operation:ref, number:uint, epoch:uint)
+cell/attempt/1(id:ref, operation:ref, number:uint, epoch:uint,
+  authority_decision:ref, dispatch_time:optional(ref), executor_contract:ref)
+cell/outcome/1(operation:ref, attempt:ref, disposition:variant,
+  value:optional(ref), evidence:optional(ref), observed_at:optional(ref))
+cell/outcome-request/1(operation:ref, attempt:ref)
+rune/act/1(tag:uint)
+
+Zero-field variants:
+  cell/lifecycle/{installed,active,paused,retiring,retired}/1
+  cell/inbox-status/{admitted,suspended,completed,cancelled}/1
+  cell/operation-stage/{pending,attempt-recorded,resolved}/1
+  cell/entry/event/1; cell/profile/runtime/1; cell/overflow/reject/1
+  cell/trigger/scheduler-yield/1; cell/target/local-executor/1
+  cell/retry/never/1; cell/outcome/{succeeded,failed-definite}/1
+One-field variant: cell/trigger/operation-result/1(operation:ref).
+
+Artifact schemas:
+  rune/noun-artifact/1: bounded preorder noun bytes, tag 0 + u64 LE atom,
+    tag 1 + head + tail. Exact length, max 65536 nodes, max depth 128.
+  rune/checkpoint/1: rune bounded machine revision 1; limits supplied separately;
+    fields(version=1, used_steps, frames, values, waiting). Frame lists and
+    waiting use null-terminated noun lists in the noun artifact codec.
+    Frame tags: Eval=0(subject,formula), Unary=1(op), Binary=2(op),
+    Branch=3(subject,yes,no), Request=4(tag,subject,body).
+    Waiting is empty or (tag,arguments,subject,body). No host grants serialized.
+    Work and value stacks retain bottom-to-top order; at most 256 frames/values,
+    65536 logical state nodes, depth 128, total 1000000 charged steps per input.
+
+Local behavior:
+  Single exclusive database owner, epoch zero, no remote authorship or consensus.
+  One live input and one unresolved act per cell; state changes only on completion.
+  Source sees persistent ~mem, optional context in ~here, lexical event input.
+  host(request) suspends with the complete noun request; host adapters own its schema.
+  Deny by default. Recorded attempt precedes dispatch. Unresolved attempts require
+  manual reconciliation; terminal result dedup binds operation and attempt IDs.
+  Outcome consumption records its invocation even after live outbox removal.
+  Each slice reserves <=1000 steps before evaluation; lost settlement charges the
+  full reservation. A result settles actual used steps; restart cannot reset usage.
+  Request claims bind origin+nonce to EventId atomically across the local store.
+  Read errors do not become empty state; unknown commits do not become success.
+  Blob artifact codec label is hemera/bytes/0.3. Source/code is retained as bytes.
