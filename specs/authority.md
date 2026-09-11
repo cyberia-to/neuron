@@ -2,7 +2,7 @@
 title: authority
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # authority
 
@@ -38,6 +38,16 @@ An installation manifest requests rights. Activation receives at most the
 intersection of those requests, the issuer's available rights and current policy.
 New rights on upgrade require a new decision. A model-generated preference,
 memory entry or imported instruction is ordinary input.
+
+An invocation pins the soul/configuration version used to form its intent while
+ward checks current policy at the effect boundary. Event.context carries data
+scope and intent, with no independent grant semantics. Context expansion,
+provider failover and child delegation respect disclosure limits; access to a
+source does not automatically authorize transmission to another recipient.
+
+Learning promotion follows soma's configured evaluation policy. Any additional
+capability, executable release or economic conviction passes the corresponding
+ward gate. Routine provenance links preserve their exploratory evidence status.
 
 ## delegation and revocation
 

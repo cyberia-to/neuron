@@ -2,7 +2,7 @@
 title: evolution
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # evolution
 
@@ -92,6 +92,16 @@ Restore verifies content identities, history, schemas, evidence and live policy.
 Missing content yields MissingArtifact with the unresolved manifest.
 Historical inspection may proceed over available verified data. Execution waits
 for a complete resumable closure and valid placement authority.
+
+Agent context, task/child obligations, budget reservations and pending delivery
+artifacts belong to that closure. Model caches may be rebuilt only under a
+declared adapter contract preserving required resumable state. Switching models
+is an explicit application transition with a newly recorded inference request.
+
+Execution restore does not restore external filesystem or network state. File
+recovery verifies observed revisions and preserves subsequent user changes;
+compensation is a new authorized operation. The agent profile defines the
+workspace and delivery obligations that must survive a transfer.
 
 ## fork, split and merge
 

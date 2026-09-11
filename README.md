@@ -11,6 +11,8 @@ ledgers and cybergraph regions. In cyb, a loaded cell grows an ability of the ro
 Start with [the specification](specs/README.md).
 The [convergence explanation](docs/cell-convergence.md) records the reasoning,
 source review and relationship to the existing stack.
+The [foundations and Hermes review](docs/foundations-agent-review.md) explains
+the 0.2 corrections and the evidence needed to demonstrate a stronger agent.
 
 The repository currently contains specifications for review. Runtime code and
 published packages follow review of these contracts.
@@ -20,7 +22,7 @@ Cell defines and coordinates its transitions. The cyb log organ presents history
 
 ## repository
 
-- specs/ — normative candidate contracts, version 0.1.
+- specs/ — normative candidate contracts, version 0.2.
 - docs/ — explanations and source findings.
 - LICENSE — the Cyber License used by the companion repositories.
 

@@ -2,7 +2,7 @@
 title: history
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # history and persistence
 
@@ -23,6 +23,12 @@ event and operation references. Referenced records and their artifact closure
 are retained under the same privacy and availability contract.
 Cell history indexes derive from these records; index corruption is repaired by
 replay from an authenticated checkpoint/history boundary.
+
+Application-context bindings, task lineage and learning evidence use this same
+publication path. Record provenance and bounded semantic projections are part
+of the owning application's contract. An opaque transcript blob alone cannot
+satisfy the agent profile's contextual, causal and retrieval requirements.
+Index roots pin their schema and scope; indexes remain rebuildable projections.
 
 A Signal's economic fields retain cybergraph semantics. Cell tags and operation
 kinds are expressed in application particle schemas. Publishing cell records
@@ -55,6 +61,10 @@ Required ordering:
 4. Atomically record the selected graph change, recoverable references and head.
 5. Satisfy the requested persistence barrier.
 6. Publish the durable receipt and notify subscribers.
+
+Storage MAY batch commits and persistence barriers while preserving per-cell
+head selection, receipt order and durable-before-dispatch rules. Pending model
+tokens or transient view deltas need no individual durable graph transaction.
 
 All fallible validation that could reject state application must precede its
 irreversible mutation, or run in an abortable transaction. A partially advanced
@@ -112,6 +122,7 @@ A resumable checkpoint MUST retain:
 
 - its birth, definition, runtime/checkpoint schemas and needed code;
 - its Snapshot and application-state closure;
+- application-context manifests and the source artifacts required to resume;
 - pending input, operation, attempt, result and continuation records;
 - evidence and governing policy references needed for verification;
 - the authenticated history/checkpoint boundary needed for reconstruction.
@@ -130,6 +141,11 @@ Graph access control and encryption apply before export. Indexes, causation,
 addresses and receipts can leak private context and inherit the relevant scope.
 Physical deletion changes availability; already published facts remain in the
 selected history and in replicas that retain them.
+
+A learned summary or skill records source references and retained evidence.
+Compaction preserves pending obligations, explicit user constraints and source
+availability declarations. Retrieval reports inaccessible or pruned sources;
+it MUST NOT fabricate support from a summary whose originals are unavailable.
 
 ## current implementation status
 

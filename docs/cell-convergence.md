@@ -10,6 +10,10 @@ Explanation of the standalone `cell` repository. This document records the
 unification and source findings. The complete candidate contracts are in
 [specs](../specs/README.md); implementation follows their review.
 
+The [foundations and agent review](foundations-agent-review.md) extends this
+reasoning for draft 0.2: pinned now/soul context, immediate local gates, bounded
+incremental state, durable agent composition and measured comparison with Hermes.
+
 ## established direction
 
 The user established two premises on 2026-09-11:

@@ -2,7 +2,7 @@
 title: execution
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # execution
 
@@ -14,20 +14,30 @@ input. The host supplies a separate authority context and finite resource budget
 The model interface has three operations:
 
 ~~~text
-start(definition, snapshot, admitted_event, context, budget) → RunStep
-resume(definition, checkpoint, recorded_input, context, budget) → RunStep
+start(definition, snapshot, admitted_event, authority_context, budget) → RunStep
+resume(definition, checkpoint, recorded_input, authority_context, budget) → RunStep
 inspect(definition) → RuntimeSupport
 ~~~
 
+authority_context is the host-bound ward context. Event.context is a separate
+immutable application input; it cannot grant authority. Resume obtains that
+binding from the retained continuation and records any authorized replacement.
+
 RunStep is one of:
 
-- Complete(application_state, result, view_artifacts, requested_operations, witnesses).
-- AwaitAct(checkpoint, requested_operations, witnesses).
-- AwaitEvent(checkpoint, subscription_request, witnesses).
+- Complete(application_state, result, view_artifacts, requested_operations, witnesses, used_resources).
+- AwaitAct(checkpoint, requested_operations, witnesses, used_resources).
+- AwaitEvent(checkpoint, subscription_request, witnesses, used_resources).
 - Yield(checkpoint, used_resources).
 - Fault(code, diagnostic_artifact, used_resources).
 
-Each successful step proposes an updated Snapshot and a commit. The engine
+used_resources is the slice's metric/measurement map with each metric's declared
+aggregation rule, such as cumulative steps or peak memory. Host accounting
+validates it and retains consumption/reservations with the resulting transition.
+Successful and failed work both consume resources. External usage is reconciled
+from executor/provider evidence and remains uncertain when that evidence is absent.
+
+Each successful stateful step proposes an updated Snapshot and a commit. The engine
 validates schema, quota, authority requirements and predecessor before publishing.
 Uncommitted requested operations are inert. A continuation resumes only with
 input matching its persisted selector and expected schema.
@@ -53,10 +63,13 @@ or consequential external act. A user interaction with a view creates an Event.
 ## checkpoints
 
 Continuation = (definition, runtime, checkpoint_schema, artifact, trigger,
-base_head, invocation, resources_used).
+base_head, invocation, context, resources_used).
 
 trigger is a named variant: operation_result(OperationId), event(selector
 particle), or scheduler_yield. invocation is the originating EventId.
+context is the optional application-context particle active at suspension.
+Initially it equals Event.context; explicit steering may establish a successor
+under the application contract. Recovery cannot silently resolve it to latest.
 base_head identifies the state at which the checkpoint was produced; later
 management/outcome records may advance the head without changing that checkpoint.
 The engine verifies that the current Snapshot still contains the continuation
@@ -148,6 +161,37 @@ Compute/memory limits are enforced by the runtime/placement mechanism before
 unbounded execution is admitted. Budget exhaustion yields a valid checkpoint or
 records a bounded fault. Recursive cell calls consume a delegated budget with
 a bounded call depth; waiting never holds another cell's write lock.
+
+Consumed budget and outstanding reservations are retained across yields,
+restarts, retries and child calls. A parent allocates child budgets atomically
+before dispatch and cannot spend the same reservation concurrently. Uncertain
+external usage keeps its reservation until reconciliation or explicit settlement.
+A budget increase is an authorized graph event. Runtime accounting and external
+billing state their respective enforcement and uncertainty boundaries.
+
+For a cumulative budget that must survive crashes, the host reserves a bounded
+runtime slice durably before running it. A crash before usage is recorded keeps
+the reservation charged conservatively until settlement. Discarding an
+uncommitted proposal does not refund compute already spent. Per-request volatile
+limits advertise that narrower lifetime explicitly.
+
+Cross-cell delegation commits the reservation in its owning budget scope before
+child admission. Its grant names that reservation. A lost reply cannot free it;
+release requires a definite settlement/cancellation or reconciliation record.
+This uses the owner's ordered history and receipts, with no assumed distributed
+atomic transaction. Budget record schemas belong to the selected accounting
+contract and are retained in state/history with their enforceable grants.
+
+One authoritative transition order permits multiple in-flight invocations and
+operations. Each proposal validates its base state; a stale result requires
+application reconciliation before adoption. Pure/model work may run concurrently
+under a bounded scheduler. It does not hold the cell writer lock while waiting.
+Completed work and live continuations identify the state and context they used.
+
+Per-step graph access is bounded by bytes, results, hops and deadline. Persistent
+indexes update changed paths; immutable code, state fragments and model artifacts
+can be shared. Parked cells retain resumable references and need no resident VM
+or private model copy. Body owns physical placement and resource measurement.
 
 Scheduling is fair among admitted instances according to host policy. Plan owns
 future schedules; cell schedules execution of already admitted work.

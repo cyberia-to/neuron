@@ -2,7 +2,7 @@
 title: conformance
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # conformance
 
@@ -55,6 +55,27 @@ declaration or an unverified receipt does not satisfy a requirement.
 | C40 | Legacy import | Repeatable import reports malformed records, conflicts, missing predecessors/content |
 | C41 | Headless parity | Same runtime instance is operable through CLI and cyb without separate business logic |
 | C42 | Retention boundary | Compacted history is declared unavailable; pending obligations keep required artifacts |
+| C43 | Local source gate | Existing host evaluates without publication, remote consensus or ahead-of-time compilation |
+| C44 | Context identity | Admission, yield and restore retain the same application binding; changes are explicit inputs |
+| C45 | Agent: now/soul change mid-task | UI navigation does not mutate the task; steering is ordered and current revocations still apply |
+| C46 | Schema substitution | Same human alias with different manifest content cannot pass as the same schema |
+| C47 | Large history and sparse mutation | Bounded graph requests and changed index paths; no mandatory full-history scan per transition |
+| C48 | Concurrent reservations and lost usage report | Parent and children cannot spend one reservation twice; crash before RunStep retains reserved exposure |
+| C49 | Agent: durable child joins | Restart retains ownership/results; completion explicitly settles or detaches every child |
+| C50 | Agent: provider failover | Model/config change is recorded and cannot widen disclosure, authority or budget |
+| C51 | Agent: context compression | Explicit constraints and unresolved obligations remain accessible; missing sources are labelled |
+| C52 | Agent: learning promotion | Candidate provenance/evaluation retained; promotion follows policy and grants no new authority |
+| C53 | Agent: workspace conflict | Recovery/rollback preserves later user edits and reports partial/conflicting effects |
+| C54 | Agent: delivery retry | Completed task result is resent by delivery identity without rerunning the task |
+| C55 | Agent: transfer closure | Task, context, children, artifacts and budget state transfer with fencing and policy checks |
+| C56 | Parked instances | Suspended work can release VM/model residency and resume from the declared closure |
+| C57 | Batched persistence | Receipts/cursors/dispatch wait for their own durability boundary despite batching |
+| C58 | Agent: evidence semantics | Tool observations/skill acceptance cannot appear as stronger verification or economic conviction |
+
+Rows marked Agent apply to the agent composition profile. Other rows apply when
+their local-host/runtime/storage capability is advertised. A release lists every
+row as passed, failed, unimplemented or inapplicable with a contract-based reason.
+Task competence and comparative outcomes use the A-series in evaluation.md.
 
 ## persistence fault matrix
 

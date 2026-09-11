@@ -2,7 +2,7 @@
 title: evidence
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # evidence and profiles
 

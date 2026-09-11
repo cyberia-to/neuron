@@ -2,10 +2,10 @@
 title: cell specification
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 date: 2026-09-11
 ---
-# cell specification 0.1
+# cell specification 0.2
 
 This is the complete candidate model for review. MUST, MUST NOT, SHOULD and MAY
 express requirements on an implementation claiming this version. Every document
@@ -13,7 +13,9 @@ in this directory is normative except explicitly identified source-status notes.
 Draft means review is pending; it describes no implementation as complete.
 
 The model covers definition, birth, execution, authority, history, communication,
-evidence, lifecycle, evolution, hosting, interfaces and conformance. Ledger
+evidence, lifecycle, evolution, hosting, interfaces and conformance. The agent
+composition profile adds cyb context, soma tasks/learning and comparative release
+criteria while preserving application ownership. Ledger
 economics, consensus algorithms and spectral division are supplied by their
 own protocols, with explicit requirements at the cell boundary.
 
@@ -21,6 +23,7 @@ own protocols, with explicit requirements at the cell boundary.
 
 | Contract | Defines |
 |---|---|
+| [Foundations](foundations.md) | Cyb/soft3 invariants, instant start, locality and evidence boundaries |
 | [Model](model.md) | Entities, identities, state, records, ordering |
 | [Data](data.md) | Canonical schema representation and identity derivation |
 | [Lifecycle](lifecycle.md) | Installation, activation, suspension and retirement |
@@ -32,7 +35,9 @@ own protocols, with explicit requirements at the cell boundary.
 | [Evolution](evolution.md) | Upgrade, relocation, backup, fork and division |
 | [API](api.md) | Host operations, ports, results and errors |
 | [Integration](integration.md) | Repository structure, owners, extraction and gaps |
+| [Agent composition](agent.md) | Context, tasks, tools, learning, workspace, schedules and delivery |
 | [Conformance](conformance.md) | Required behavioral and failure checks |
+| [Evaluation](evaluation.md) | Full-agent parity inventory and measurable superiority gates |
 
 ## governing decisions
 
@@ -51,6 +56,18 @@ own protocols, with explicit requirements at the cell boundary.
    finality gate. Unknown external outcomes remain explicit.
 10. Instance identity survives an authorized upgrade or relocation; an
     independent fork receives a new birth identity.
+11. Local gates start through the existing host; stronger profiles add explicit
+    gates. State transitions and graph access have bounded incremental costs.
+12. Agent invocations pin context; soma owns cognition and evaluated learning.
+    Durable children and consumed budgets survive task recovery.
+13. Agent parity and superiority require complete capability mapping and
+    reproducible outcomes beyond cell conformance.
+
+The [0.2 review](../docs/foundations-agent-review.md) records the rationale.
+This revision changes draft Event/Continuation/Query fields, RunStep resource
+reporting and schema identity binding.
+There is no released wire format; /1 names are reserved aliases whose immutable
+manifest identities must be pinned before implementation compatibility claims.
 
 ## completeness and dependency status
 

@@ -2,7 +2,7 @@
 title: lifecycle
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # lifecycle
 
@@ -32,7 +32,9 @@ instance. Grant negotiation references the pinned release and requested rights.
 
 Activation MUST verify:
 
-1. Definition identity, publication provenance and the governing policy.
+1. Definition identity, origin provenance and the governing policy. A local
+   source may use authenticated local provenance; published releases bind their
+   publication record according to the selected profile.
 2. Input/state/checkpoint schemas and required extension protocols.
 3. Availability and integrity of executable and immediate resumption artifacts.
 4. A compatible runtime with enforceable resource limits.

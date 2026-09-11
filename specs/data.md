@@ -2,7 +2,7 @@
 title: cell data
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # data and identity
 
@@ -12,10 +12,14 @@ application schemas and their canonical values; tape supplies outer framing.
 
 ## canonical values
 
-A typed record is pair(schema_particle, fields). A schema particle is the
-stack particle of the exact UTF-8 schema name, for example cell/commit/1.
+A typed record is pair(schema_particle, fields). A schema particle identifies an
+immutable schema manifest binding the complete shape, field order, refinements,
+semantic contract and dependency particles. Human names such as cell/commit/1
+resolve to that manifest; hashing a name alone does not bind its meaning.
 Fields are a right-nested list in the order specified by the owning contract,
 terminated by atom zero. This nominal wrapper is ordinary stack data.
+Refinement checking preserves the underlying data identity. Transport framing
+and application schema names create no new kernel data variants or hash capacity.
 
 | Logical value | Canonical representation |
 |---|---|
@@ -48,8 +52,15 @@ identifier. Codec compatibility is a release gate in integration.md.
 
 ## schemas
 
-The schema prefix is cell/ and schema revision is /1.
-Schema names and field order are fixed by the named contract:
+The schema prefix is cell/ and initial schema names end in /1. A release pins
+the manifests and their transitive dependencies as one schema suite. The base
+manifest encoding is supplied by the stack schema contract; manifests reference
+dependencies and omit their own identifier, allowing an acyclic bootstrap.
+Compatibility requires identical manifest identities, rather than equal names.
+These drafts reserve names; production manifest identities and codec fixtures
+are an integration prerequisite. No compatible wire release exists yet.
+
+Schema field order and meaning are defined by the owning contract:
 
 | Names | Contract |
 |---|---|
@@ -61,6 +72,11 @@ Schema names and field order are fixed by the named contract:
 | evidence, profile, finality | evidence.md |
 | upgrade, relocation, backup | evolution.md |
 | query, page, host-info, error | api.md; local API representation |
+
+Application context, task, skill and budget-accounting manifests belong to their
+owning organ/protocol suites. Their use as particle references adds no dependency
+from cell model to soma's implementation. Persistent-index schemas likewise
+belong to the selected stack data/storage suite.
 
 An extension defines its own schema particle and acceptance contract. Unknown
 required schemas fail admission. Opaque archival forwarding MAY preserve unknown
@@ -82,10 +98,18 @@ Commit order never derives from wall-clock sorting.
 ResourceContract = (limits, yield_interval, overflow_policy).
 limits is a sorted map from metric particle to uint limit. Metrics required by
 the baseline: compute_steps, memory_bytes, input_bytes, output_bytes,
-pending_operations, queued_events. yield_interval counts runtime compute steps.
+pending_operations, queued_events, graph_read_bytes, graph_write_bytes,
+graph_hops, graph_results. Each graph request also has an explicit deadline.
+yield_interval counts runtime compute steps.
 overflow_policy is reject or bounded_wait; bounded_wait includes a deadline.
 Admission intersects definition limits with host policy and delegated budgets.
 A runtime unable to enforce a required metric fails activation.
+
+Metric manifests define units, scope and accounting. Integer counters use checked
+arithmetic; money uses a named asset and atomic units. Agent budgets additionally
+bind provider token/cost limits and child reservations as specified in agent.md.
+Energy observations state their measurement method and uncertainty; an estimate
+cannot be advertised as a physically enforced energy ceiling.
 
 ## derived identities
 
@@ -110,6 +134,9 @@ uses the full referenced content plus cell/position binding.
 
 Schema changes create a new schema particle. Definition/runtime ABI revisions,
 state migrations and wire codec revisions are independently declared.
+The 0.2 draft changes context/query fields, resource reporting and schema binding
+before any wire release.
+Implementations MUST pin manifests rather than treating all /1 aliases as equal.
 An implementation publishes supported schemas/codecs and concrete limits.
 Oversized or unsupported input is rejected before allocating its declared size.
 Required records and receipts remain inspectable when executable code is unavailable.

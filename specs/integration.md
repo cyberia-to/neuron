@@ -2,7 +2,7 @@
 title: integration
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # integration and extraction
 
@@ -37,6 +37,8 @@ use one extracted implementation.
 | body | Machine resources, devices and process supervision |
 | name/state | Name resolution / verified external-state perception |
 | soma | Agent cognition, task strategy and learning |
+| now/soul/com | Context anchor / configuration versions / admitted user asks and steering |
+| sigma | Asset accounting and monetary budget integration |
 | plan/sense | Future schedules / conversations and delivery |
 | cyb log | History presentation, filtering, search and navigation |
 | cyb memory/brain/time | Filesystem, spatial and temporal graph presentations |
@@ -61,6 +63,11 @@ refer to physical/protocol data structures. They do not create a new organ owner
 | data → wire | Stack schemas/codecs are evolving | Pinned structural identity/codec vectors, dialect registration and bounded decoding |
 | act → placement | Epoch enforcement is not wired as a uniform boundary | Ward/executor fencing and current-grant checks |
 | profile → proof | Host witnesses and verification routes are partial | Explicit supported claim/finality sets and admission rejection for gaps |
+| data → schema suite | Draft names currently lack pinned complete manifest definitions | Immutable schema manifests, bootstrap encoding and persistent-index schemas |
+| now/soul → soma | Agent context is implicit in the 0.1 cell contract | Versioned application-context schema, source manifests and explicit steering |
+| soma → cell | Generic transitions alone do not implement agent behavior | Task/skill schemas, durable joins, model/tool adapters and learning evaluation |
+| body/sigma/ward → budget | Generic quotas lack retained external/child accounting | Shared reservation identities, checked accounting and uncertainty settlement |
+| plan/sense → cell | Scheduling and delivery have independent obligations | Stable occurrence/task/delivery IDs with durable correlation and retry semantics |
 
 These are implementation requirements in the owning repositories. A cell release
 cannot advertise their guarantees merely because an adapter trait exists.
@@ -96,6 +103,13 @@ independent state/authority/deployment boundary, rather than every inference
 step. Instructional skills remain particles interpreted by soma; executable
 extensions can provide cell definitions.
 
+The [agent composition profile](agent.md) specifies required semantic roles and
+observable behavior. Soma and the relevant organs own their exact versioned
+schemas. Cell imports their particles and contracts through ports; model/engine
+has no dependency on an agent-specific task enum or provider SDK.
+The [foundation constraints](foundations.md) preserve immediate local gate
+execution and bounded resource use throughout extraction.
+
 Cyb's current anatomy governs soul/configuration, avatar/visualization,
 now/context and log/history presentation when adapting older soma documents.
 The specification introduces no separate global configuration or memory owner.
@@ -107,3 +121,7 @@ Remote building support adds authenticated delivery and the declared service
 finality contract. Ledger/knowledge support adds their exact protocol suites.
 Every advertised combination of runtime, profile, storage and transport must
 state its supported schemas, evidence, durability and limits.
+
+Agent readiness additionally requires the application-profile schemas, adapters
+and [evaluation gates](evaluation.md). A durable counter host is the first
+integration slice; full daily-agent functionality is a separate release gate.

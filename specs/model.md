@@ -2,13 +2,17 @@
 title: cell model
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # model
 
 A cell is an addressable owner of bounded state with explicit admission,
 transition, authority, lifecycle and finality rules. A runtime-cell supplies
 behavior through a loaded definition and grows an ability of cyb.
+
+The definition also obeys [foundations](foundations.md). The
+[agent profile](agent.md) composes these generic mechanics with soma and the
+other organs; cognition and task policy remain application responsibilities.
 
 ## entities and names
 
@@ -85,7 +89,10 @@ inbox, continuations, outbox, subscriptions, management).
 
 All fields except lifecycle and epoch are particle references. Empty collections
 use canonical empty values with their collection schema. A collection is a
-sorted key/value map; values are typed record particles.
+logical key/value map with a pinned persistent-index schema and root; values are
+typed record particles. Key ordering follows data.md. Large collections use
+incremental stack indexes; a transition MUST NOT require copying or hashing the
+entire inbox, outbox or history. Small maps MAY use canonical sorted lists.
 management holds ordered upgrade/relocation/retirement requests and their state.
 Snapshot identity covers all resumable execution bookkeeping.
 The birth schema omits CellId from initial data so identity is acyclic.
@@ -115,11 +122,14 @@ recorded inputs or witnesses if they affect a transition.
 
 ## events and commits
 
-Event = (origin, nonce, destination, entry, payload, causation,
+Event = (origin, nonce, destination, entry, payload, context, causation,
 observed_at, deadline, authority_reference).
 
 origin is an authenticated principal; nonce is unique within that origin.
 destination is CellId; entry is text; payload is a particle.
+context is an optional particle interpreted by the entry's application contract.
+The engine preserves its identity without importing that application's ontology.
+The agent profile requires a context binding; a generic counter need not have one.
 causation is a sorted list of event/operation/commit references with explicit kind.
 observed_at and deadline use TimePoint from data.md and may be absent.
 EventId is its canonical particle. Same (origin, nonce) with different content

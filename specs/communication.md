@@ -2,7 +2,7 @@
 title: communication
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # communication
 
@@ -55,7 +55,7 @@ Its own transition establishes the resulting state. An external writer cannot
 overwrite the receiver's Snapshot.
 
 Trade supplies conditions and receipts interpreted by an explicitly supported
-economic protocol. Version 0.1 defines the routing/evidence boundary; the
+economic protocol. Version 0.2 defines the routing/evidence boundary; the
 economic protocol defines locking, matching, expiry and settlement.
 A host without that protocol returns UnsupportedProtocol. The interface provides
 no generic cross-cell atomic-commit promise.

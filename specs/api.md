@@ -2,7 +2,7 @@
 title: api
 tags: cell, soft3, spec
 status: draft
-spec-version: "0.1"
+spec-version: "0.2"
 ---
 # API and host composition
 
@@ -15,8 +15,11 @@ async methods, channels or explicit polling without changing the contract.
 HostId is an authenticated host principal managed through vault/mudra. A host's
 ephemeral process boot id is separate; restarting does not mint a new CellId.
 
-Query = (cell, at, selector, requested_evidence, limit, cursor).
+Query = (cell, at, selector, requested_evidence, limit, cursor, budget, deadline).
 at is a Head or latest_selected; selector is an application schema/query particle.
+budget references finite graph-access limits; deadline is a TimePoint under a
+supported clock. Pagination consumes the enclosing caller/task budget and cannot
+reset it. The actual limits intersect the host and reader's granted limits.
 Page = (cell, head, records, cursor, completeness, evidence).
 records is an ordered list of particles; completeness is complete, partial with
 a reason, or unavailable with an available history boundary.
@@ -47,6 +50,16 @@ All mutating requests have stable origin-scoped nonces and idempotent lookup.
 A control operation cannot bypass the same event/authority/history boundaries
 used by runtime-originated work. Completion of a method is not inferred from
 an open socket or a rendered message; callers inspect its receipt stage.
+
+The local facade additionally accepts run_source(source, runtime, input, at,
+application_context, authority_context, limits, request_nonce). at selects the
+retained snapshot for read/view execution. It derives and retains a pinned
+minimal Definition. Pure read/view gates execute against a supplied retained
+snapshot; a stateful gate composes create/activate/submit, reusing stable request
+identities on retry. The result identifies the definition and any created instance
+plus the applicable result/receipt. Authenticated local provenance satisfies the
+local profile; remote publication is a separate publish operation. This facade
+preserves [instant start](foundations.md) and all effect/durability gates.
 
 ## required ports
 
