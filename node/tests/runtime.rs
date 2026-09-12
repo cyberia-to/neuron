@@ -18,7 +18,7 @@ impl StorePath {
     }
     fn open(&self) -> Engine<Graph, Rune> {
         Engine::with_ward(
-            Graph::open(self.0.join("graph.redb")).unwrap(),
+            Graph::open(self.0.join("bbg")).unwrap(),
             Rune,
             cell_node::LocalWard,
         )

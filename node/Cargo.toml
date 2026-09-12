@@ -8,3 +8,6 @@ cell-model.workspace = true
 cell-engine.workspace = true
 cell-rune.workspace = true
 cybergraph.workspace = true
+
+[features]
+legacy-redb-migration = ["cybergraph/legacy-redb-migration"]

@@ -5,6 +5,7 @@ pub use cell_rune::Rune;
 use cybergraph::application::{
     ApplicationGraph, Error as GraphError, Head as GraphHead, Proposal, StorageError,
 };
+pub use cybergraph::application::{Backend, Database};
 use cybergraph::content::{Codec, Content as GraphContent};
 
 /// Bootstrap adapter for a private database owner. A production ward service
@@ -24,6 +25,16 @@ pub struct Graph(pub ApplicationGraph);
 impl Graph {
     pub fn open(path: impl AsRef<std::path::Path>) -> Result<Self, Error> {
         ApplicationGraph::open(path).map(Self).map_err(graph_error)
+    }
+    pub fn from_database(database: Database) -> Self {
+        Self(ApplicationGraph::from_database(database))
+    }
+    #[cfg(feature = "legacy-redb-migration")]
+    pub fn migrate_redb(
+        source: impl AsRef<std::path::Path>,
+        destination: impl AsRef<std::path::Path>,
+    ) -> Result<(), Error> {
+        ApplicationGraph::migrate_redb(source, destination).map_err(graph_error)
     }
 }
 fn graph_error(e: GraphError) -> Error {

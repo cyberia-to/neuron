@@ -69,7 +69,7 @@ impl Directory {
         Self(path)
     }
     fn graph(&self) -> Graph {
-        Graph::open(self.0.join("graph.redb")).unwrap()
+        Graph::open(self.0.join("bbg")).unwrap()
     }
 }
 impl Drop for Directory {

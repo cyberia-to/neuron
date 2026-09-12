@@ -76,6 +76,24 @@ A lost reply after commit is resolved by transaction_id/CommitId lookup.
 An uncertain I/O result returns CommitUnknown and stops dependent effects until
 lookup/recovery determines the selected history.
 
+## local database ownership
+
+The local CLI uses a BBG database directory named bbg by default, with Fjall
+selected by Cybergraph's local-storage feature. The same BBG Database owner
+may be passed to the local graph adapter; it owns backend transactions and the
+writer lock shared with other storage views. Cell continues to publish through
+GraphPort and does not own a separate storage engine.
+
+If the old default cell.redb exists, an invocation without --store must stop
+with an explicit migration or store-selection diagnostic. It must not silently
+create a fresh session. An explicit --store directory selects that session.
+The optional legacy-redb-migration build feature supplies
+cell migrate-redb SOURCE DESTINATION. This command runs before normal graph
+opening, imports the source through Cybergraph/BBG, preserves the old file and
+requires a fresh destination. Partial imports remain unavailable. Backend
+format errors and migration failures propagate to the caller. Default builds
+do not enable redb.
+
 ## durability and finality
 
 Durability levels are Volatile and LocalDurable. Volatile is explicit opt-in for

@@ -17,7 +17,7 @@ impl Store {
     fn call(&self, args: &[&str]) -> (bool, Value) {
         let output = Command::new(env!("CARGO_BIN_EXE_cell"))
             .arg("--store")
-            .arg(self.0.join("graph.redb"))
+            .arg(self.0.join("bbg"))
             .args(args)
             .output()
             .unwrap();

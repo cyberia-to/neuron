@@ -12,13 +12,24 @@ use std::path::PathBuf;
     about = "Local stateful rune abilities with durable graph history"
 )]
 struct Args {
-    #[arg(long, default_value = "cell.redb", global = true)]
-    store: PathBuf,
+    #[arg(long, global = true, help = "BBG database directory (default: bbg)")]
+    store: Option<PathBuf>,
     #[command(subcommand)]
     command: Command,
 }
 #[derive(Subcommand)]
 enum Command {
+    #[command(flatten)]
+    Graph(GraphCommand),
+    /// Import an old application redb file into a fresh BBG directory.
+    #[cfg(feature = "legacy-redb-migration")]
+    MigrateRedb {
+        source: PathBuf,
+        destination: PathBuf,
+    },
+}
+#[derive(Subcommand)]
+enum GraphCommand {
     Create {
         source: PathBuf,
         #[arg(long, default_value = "0")]
@@ -166,10 +177,32 @@ fn run(engine: &Engine<Graph, Rune>, cell: Particle) -> Result<Value> {
     Err("host slice limit reached; run the same cell again to continue".into())
 }
 fn execute(args: Args) -> Result<Value> {
-    let graph = Graph::open(&args.store)?;
-    let engine = Engine::with_ward(graph, Rune, cell_node::LocalWard);
     match args.command {
-        Command::Create {
+        Command::Graph(command) => execute_graph(args.store, command),
+        #[cfg(feature = "legacy-redb-migration")]
+        Command::MigrateRedb {
+            source,
+            destination,
+        } => {
+            Graph::migrate_redb(&source, &destination)?;
+            Ok(json!({"source": source, "destination": destination, "status": "migrated"}))
+        }
+    }
+}
+fn execute_graph(store: Option<PathBuf>, command: GraphCommand) -> Result<Value> {
+    let store = match store {
+        Some(path) => path,
+        None => {
+            if std::path::Path::new("cell.redb").try_exists()? {
+                return Err("legacy cell.redb exists; migrate it with a legacy-redb-migration build, or select a BBG directory explicitly with --store".into());
+            }
+            PathBuf::from("bbg")
+        }
+    };
+    let graph = Graph::open(store)?;
+    let engine = Engine::with_ward(graph, Rune, cell_node::LocalWard);
+    match command {
+        GraphCommand::Create {
             source,
             initial,
             nonce: n,
@@ -194,7 +227,7 @@ fn execute(args: Args) -> Result<Value> {
             result["birth_nonce"] = json!(hex(nonce));
             Ok(result)
         }
-        Command::Submit {
+        GraphCommand::Submit {
             cell,
             input,
             nonce: n,
@@ -213,9 +246,9 @@ fn execute(args: Args) -> Result<Value> {
             result["request_nonce"] = json!(hex(nonce));
             Ok(result)
         }
-        Command::Run { cell } => run(&engine, particle(&cell)?),
-        Command::Inspect { cell } => inspection(&engine, particle(&cell)?),
-        Command::History { cell, after, limit } => {
+        GraphCommand::Run { cell } => run(&engine, particle(&cell)?),
+        GraphCommand::Inspect { cell } => inspection(&engine, particle(&cell)?),
+        GraphCommand::History { cell, after, limit } => {
             let cell = particle(&cell)?;
             let mut entries = Vec::new();
             for head in engine.graph.history(cell, after, limit)? {
@@ -235,13 +268,13 @@ fn execute(args: Args) -> Result<Value> {
             }
             Ok(json!({"cell": hex(cell), "history": entries}))
         }
-        Command::Take { cell, operation } => {
+        GraphCommand::Take { cell, operation } => {
             let receipt = engine.begin_attempt(particle(&cell)?, particle(&operation)?)?;
             Ok(
                 json!({"operation": hex(receipt.operation), "attempt": hex(receipt.attempt), "tag": receipt.tag, "arguments": cell_rune::display(&receipt.arguments)?}),
             )
         }
-        Command::Outcome {
+        GraphCommand::Outcome {
             cell,
             operation,
             attempt,
@@ -260,7 +293,7 @@ fn execute(args: Args) -> Result<Value> {
                 inspection(&engine, cell)
             }
         }
-        Command::Fail {
+        GraphCommand::Fail {
             cell,
             operation,
             attempt,
@@ -270,22 +303,22 @@ fn execute(args: Args) -> Result<Value> {
             engine.record_failure(cell, particle(&operation)?, particle(&attempt)?, reason)?;
             inspection(&engine, cell)
         }
-        Command::Pause { cell } => {
+        GraphCommand::Pause { cell } => {
             let cell = particle(&cell)?;
             engine.manage(cell, Lifecycle::Paused)?;
             inspection(&engine, cell)
         }
-        Command::Resume { cell } => {
+        GraphCommand::Resume { cell } => {
             let cell = particle(&cell)?;
             engine.manage(cell, Lifecycle::Active)?;
             run(&engine, cell)
         }
-        Command::Cancel { cell } => {
+        GraphCommand::Cancel { cell } => {
             let cell = particle(&cell)?;
             engine.cancel(cell)?;
             inspection(&engine, cell)
         }
-        Command::Retire { cell } => {
+        GraphCommand::Retire { cell } => {
             let cell = particle(&cell)?;
             engine.manage(cell, Lifecycle::Retiring)?;
             engine.manage(cell, Lifecycle::Retired)?;

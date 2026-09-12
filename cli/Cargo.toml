@@ -14,3 +14,6 @@ cell-rune.workspace = true
 getrandom = "0.3"
 clap = { version = "4", features = ["derive"] }
 serde_json = "1"
+
+[features]
+legacy-redb-migration = ["cell-node/legacy-redb-migration"]

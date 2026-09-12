@@ -21,7 +21,7 @@ composition remain work ahead. No Hermes parity or superiority result is claimed
 | [cell-node](../node/src/lib.rs) | Cybergraph adapter and private-owner authorization adapter |
 | [cell CLI](../cli/src/main.rs) | Create, submit, run, inspect, history, take, outcome, fail, pause, resume, cancel, retire |
 | [cybergraph applications](../../cybergraph/src/application.rs) | Content verification/closure, application transactions, selected heads, receipts and history reads |
-| [BBG application storage](../../bbg/rs/src/storage/application.rs) | One durable redb transaction for bytes, head, history, request and global claims |
+| [BBG application storage](../../bbg/rs/src/storage/application.rs) | Shared BBG database transactions for bytes, head, history, request and global claims; Fjall by default |
 | [rune machine](../../rune/rs/interp/machine.rs) | Explicit reduction stack, nested suspension, bounded checkpoints and restore |
 
 No Bevy dependency exists in model or engine. The CLI history command is a
@@ -40,6 +40,11 @@ These commits remain local. Cargo.lock records the resolved dependency versions;
 the table pins the implementation changes that path dependency versions alone
 cannot identify. Existing unrelated workspace changes are outside these commits.
 
+The table records the initial 2026-09-11 integration. The subsequent shared BBG
+Database migration, feature selection and validation are recorded in the
+[storage migration audit](../audit/shared-bbg-database.md). The CLI now selects
+a BBG directory and offers optional explicit import from legacy redb files.
+
 ## working behavior
 
 An installed definition is source plus policy, resource contract and runtime
@@ -52,7 +57,7 @@ An event pins input, origin, nonce, destination, authority and optional context.
 The same request returns its original receipt. Altering input/context/destination
 at that origin+nonce conflicts across the local database, including after task
 completion. New inputs while an invocation is live return Busy. History uses
-bounded B-tree range reads; transitions do not rescan completed history.
+bounded ordered range reads; transitions do not rescan completed history.
 
 Every runtime slice reserves its maximum exposure before computation. Successful
 settlement charges actual steps. If settlement is interrupted, recovery charges
@@ -101,7 +106,7 @@ semantics are pinned as a host-observed ABI, not Nox proof-compatible execution.
 The private owner trusts its own database/executor reports. A remote writer or
 reader requires an authentication/disclosure adapter.
 
-## verification
+## initial verification (2026-09-11)
 
 The [local conformance map](conformance-local.md) lists all C01–C58 gates.
 Executable suites cover:
@@ -127,8 +132,10 @@ Cell's workspace tests and strict Clippy pass. The targeted rune library Clippy
 check passes. Strict whole-library Clippy in BBG/cybergraph encounters pre-existing
 warnings in prune/shard backends and the public API respectively; the new
 application modules have no reported warnings. These warnings remain visible.
-The full disk-barrier/power-loss matrix has not been executed. Fault injection
-in cell tests targets the graph port, and content corruption is tested in redb.
+The full disk-barrier/power-loss matrix was not executed. Fault injection
+in cell tests targeted the graph port, and the initial content corruption test
+used redb. Current backend verification is recorded in the storage migration
+audit linked above.
 
 Reproduce from each repository:
 

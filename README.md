@@ -25,11 +25,11 @@ listed in [implementation status](docs/implementation.md):
 ```nu
 cd ~/cyber/cell
 cargo build -p cell-cli
-let created = (./target/debug/cell --store demo.redb create examples/counter.rune | from json)
-./target/debug/cell --store demo.redb submit $created.cell 7
-./target/debug/cell --store demo.redb submit $created.cell 5
-./target/debug/cell --store demo.redb inspect $created.cell
-./target/debug/cell --store demo.redb history $created.cell
+let created = (./target/debug/cell --store demo.bbg create examples/counter.rune | from json)
+./target/debug/cell --store demo.bbg submit $created.cell 7
+./target/debug/cell --store demo.bbg submit $created.cell 5
+./target/debug/cell --store demo.bbg inspect $created.cell
+./target/debug/cell --store demo.bbg history $created.cell
 ```
 
 The counter's final state is 12. Each command opens the same graph in a new
@@ -53,6 +53,25 @@ nonce binds one event across the database, including its destination and context
 
 History is represented in cybergraph and persisted through its storage stack.
 Cell defines and coordinates its transitions. The cyb log organ presents history.
+
+The default store is a `bbg` directory using BBG's Fjall backend. `--store`
+selects another BBG directory. Graph adapters can also share an already opened
+BBG Database with other storage views. Default builds do not enable redb.
+
+An existing `cell.redb` requires explicit migration or `--store` selection;
+the CLI stops before creating an empty default session. To import it:
+
+```nu
+cargo build -p cell-cli --features legacy-redb-migration
+./target/debug/cell migrate-redb cell.redb bbg
+./target/debug/cell --store bbg history CELL_ID
+```
+
+Replace `CELL_ID` with the instance's existing particle. The destination must
+be fresh. Migration preserves the source and imports through Cybergraph/BBG;
+an interrupted destination cannot be used as a completed session. Since the
+source remains, continue selecting the imported directory with `--store bbg`.
+The [storage migration audit](audit/shared-bbg-database.md) records validation.
 
 ## repository
 
