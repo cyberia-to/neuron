@@ -1,4 +1,5 @@
-use cell_model::{Builder, Content, Error, Reader, Source};
+#![cfg(feature = "records")]
+use neuron_model::{Builder, Content, Error, Reader, Source};
 
 #[test]
 fn full_width_uint_and_balanced_particle_round_trip() {

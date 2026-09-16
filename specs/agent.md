@@ -1,19 +1,19 @@
 ---
 title: agent composition profile
-tags: cell, soma, cyb, spec
-status: draft
-spec-version: "0.2"
+tags: neuron, soma, cyb, spec
+status: accepted
+spec-version: "0.3"
 ---
 # agent composition profile
 
-This application profile defines what a cell-based cyb agent must support to be
-a usable successor to Hermes. It is additional to a cell's admission/finality
-Profile. A ledger cell need not implement agent cognition.
+This application profile defines the cyb agent requirements for a usable
+successor to Hermes. It builds on neuron/prog admission and execution contracts;
+a subject that only links or controls a book need not implement cognition.
 
-Soma owns cognition, task strategy, context selection and learning. Cell supplies
+Soma owns cognition, task strategy, context selection and learning. Neuron execution supplies
 admission, durable execution, causal identity and recovery. Application schemas
 are owned by their organs and pinned in an agent release manifest; names below
-are required semantic roles, rather than new cell kernel types. A release cannot
+are required semantic roles, rather than new neuron kernel types. A release cannot
 claim this profile until those schemas and executable checks exist.
 
 ## application context
@@ -61,12 +61,13 @@ user steering determine organ meanings when an older bundle disagrees.
 
 Soma's task schema MUST represent accepted, running, waiting, suspended,
 completed, failed and cancelled work, plus outcome uncertainty where applicable.
-Cell lifecycle remains independent: a running cell may own several waiting tasks.
+Neuron lifecycle remains independent: one subject can own multiple progs and
+concurrent waiting invocations. Task and prog IDs are data, not signing identities.
 A session/conversation is a presentation and input scope; task ownership persists
 when a terminal disconnects, a view closes or a model changes.
 
 Durable task records bind user intent, success criteria, inputs, responsible
-instance, current context, plan revision, pending work and terminal artifacts.
+neuron and prog, current context, plan revision, pending work and terminal artifacts.
 Plans are proposals until the responsible policy admits their steps. Cancellation
 stops new dispatch, tracks accepted external work and preserves its outcomes.
 Steering and progress are correlated with the stable task/invocation identity.
@@ -79,18 +80,22 @@ cancels or explicitly detaches remaining children under governing policy.
 
 Child admission, progress, terminal result and parent consumption survive host
 restart. Parent completion settles each child's obligation or explicitly detaches
-it to a named owner. A process-local callback is insufficient. Cross-cell joins
+it to a named owner. A process-local callback is insufficient. Cross-neuron joins
 use messages and receipts; they assume no atomic transaction across peers.
 Child results are input under their provenance and authority, never direct writes
 to parent state. Parent adoption validates current task/workspace preconditions.
 
-One instance serializes authoritative state transitions while model/tool work
-runs concurrently within quotas. Subtasks need separate cells only for independent
-state, authority, placement or deployment boundaries. Task schemas remain in soma.
+Neuron execution serializes authoritative subject transitions while model/tool
+work runs concurrently within quotas. Independent state uses separate progs;
+independent work uses invocations/tasks. Placement on another worker or device
+alone creates no identity. A different signing authority/network profile requires
+an explicit neuron binding; cross-subject work uses messages and receipts.
+Task schemas remain in Soma.
 
 ## inference and tool execution
 
-The agent release supports local inference and declared remote provider adapters.
+A release claiming full daily-agent parity supports local inference and declared
+remote provider adapters.
 Soma selects models; glia/runtime adapters execute; body places resources; vault
 supplies credential operations. Each request pins provider/model identity,
 parameters, context manifest, tool schemas and adapter version. Opaque provider
@@ -130,7 +135,7 @@ Otherwise partial application is recorded with a recovery manifest.
 
 Workspace restoration is an authorized compensating operation with expected
 current revisions. It preserves unrelated user edits by default and records any
-unresolved conflict. A cell checkpoint restores execution state; it cannot rewind
+unresolved conflict. An invocation checkpoint restores execution state; it cannot rewind
 an arbitrary filesystem, sent message or remote transaction. External effects
 need their own cancellation/reconciliation/compensation contracts.
 
@@ -138,7 +143,7 @@ need their own cancellation/reconciliation/compensation contracts.
 
 Soma publishes retrievable episodes and skill candidates as graph particles with
 source task, context, observations, attempts, outcomes and evaluation evidence.
-Instructional skills are versioned data; executable abilities are Definitions.
+Instructional skills are versioned data; executable abilities are pinned prog code releases.
 Both specify prerequisites, scope, dependencies and provenance.
 
 Candidate, evaluated, active, superseded and rejected states are explicit under
@@ -146,7 +151,7 @@ soma's promotion policy. A candidate becomes active only after the configured
 evaluation and authority gates. Evaluation records successful and failed cases,
 reference versions and criteria; self-description by the model is insufficient.
 Promotion may be automatic within existing authorization. Code/permission changes
-use the corresponding cell/ward contracts. A skill cannot grant itself rights.
+use the corresponding neuron/ward contracts. A skill cannot grant itself rights.
 
 Retrieval returns supporting sources, scope, freshness and contradictory evidence
 when known. User corrections become attributable revisions; obsolete candidates
@@ -160,7 +165,7 @@ trust or authority. Improvement is measured on held-out tasks under evaluation.m
 ## standing orders and delivery
 
 Plan owns schedule/timezone/catch-up semantics and produces a stable trigger
-identity for each intended occurrence. Cell admits it idempotently; soma performs
+identity for each intended occurrence. Neuron execution admits it idempotently; soma performs
 the work. Sense owns recipient/channel delivery, with radio providing transport.
 
 Trigger, task execution and delivery each retain their identity and status.
@@ -189,5 +194,28 @@ History is queryable through CLI and cyb with the same privacy/evidence semantic
 
 A concrete agent release pins all participating organ/runtime/adapter/schema
 versions and a complete capability manifest. [Evaluation](evaluation.md) defines
-feature parity and superiority claims. Cell conformance is necessary for this
+feature parity and superiority claims. Neuron conformance is necessary for this
 composition, and cannot establish the agent's task competence by itself.
+
+## Local native composition and parity scope
+
+The migration's local composition is specified by Soma's
+[neuron tasks](../../soma/specs/neuron-tasks.md) and
+[local provider](../../soma/specs/local-provider.md): common Host/Registry custody,
+bounded Rune execution, pinned local model, retained context/observations,
+controls, child joins, schedules and learning proposals. Task data and execution
+statuses are interpreted through those exact schemas. Their wire enums need not
+literally use every semantic status label in this broader requirement document.
+
+The convenience workspace revision is an explicit root label, not a snapshot of
+all files. The bounded read tool can check an expected content hash. Current
+stream deltas are transient and terminal task artifacts are durable. Native
+model/tool adapters are trusted local code with their declared cooperative limits.
+
+Remote providers, additional write/browser/media tools, MCP/ACP, messenger
+channels and broad autonomous learning retain their individual parity gates in
+the subsequent full-agent roadmap. This scope follows the accepted
+[convergence roadmap §11](../../soft3/roadmap/neuron-cell-convergence.md).
+Completing identity/execution migration establishes neither full Hermes parity
+nor a comparative superiority result. All required agent features above remain
+visible in the full-agent inventory rather than being silently dropped.

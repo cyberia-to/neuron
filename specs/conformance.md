@@ -1,8 +1,8 @@
 ---
 title: conformance
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+tags: neuron, prog, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
 # conformance
 
@@ -13,17 +13,17 @@ declaration or an unverified receipt does not satisfy a requirement.
 
 | ID | Contract / scenario | Required result |
 |---|---|---|
-| C01 | Same definition, two births | Distinct CellIds and isolated mutable histories |
-| C02 | Same instance, two replicas | Same selected head/state after verified replay |
-| C03 | Upgrade or graceful relocation | Stable CellId and explicit lineage/epoch change |
-| C04 | Independent fork | New birth identity and separate grants; no inherited pending dispatch |
+| C01 | Same code, two installations under one neuron | Distinct prog data IDs, isolated state and one subject identity |
+| C02 | Same neuron, two supported readers/replicas | Same selected head/state after verified replay |
+| C03 | Upgrade or supported fenced transfer | Stable NeuronId with explicit prog revision or placement generation |
+| C04 | Independent authority fork | Explicit new neuron/custody/grants and lineage; no inherited pending dispatch |
 | C05 | Canonical values | Same semantic record has identical particle across supported codecs/hosts |
 | C06 | Invalid encoding | Duplicate keys, unsorted sets, bad lengths/UTF-8/fields and unknown mandatory schemas rejected |
 | C07 | Content binding | Altered code/input/state/operation/record fails identity or evidence verification |
 | C08 | Lifecycle admission | Every state accepts only the operations allowed by lifecycle.md |
 | C09 | View detach | Closing/reopening a surface leaves underlying lifecycle/history intact |
 | C10 | Head race | At most one authoritative successor; losing proposal dispatches no act |
-| C11 | Same neuron, several cells | Independent cell indices with valid coordinated upstream writer sequence |
+| C11 | Same neuron, several progs | Independent prog revisions and waiting jobs; shared root CAS and coordinated upstream sequence |
 | C12 | Sparse replication | Gap is explicit; sparse history cannot masquerade as a full SignalChain |
 | C13 | Exact duplicate/conflict | Duplicate returns original receipt; changed content at same identity/position returns Conflict |
 | C14 | Subject rewrite | Direct, sequential, nested and reactive acts retain the correct host authority |
@@ -43,17 +43,17 @@ declaration or an unverified receipt does not satisfy a requirement.
 | C28 | In-process vs radio | Same requests produce equivalent authority, admission and receipt semantics |
 | C29 | Snapshot-and-follow | No missing committed event between snapshot and subscription |
 | C30 | Slow subscriber | Bounded memory and explicit ResyncRequired with a verified recovery boundary |
-| C31 | Evidence binding | Wrong cell/code/state/policy/epoch/clock evidence fails the gate |
+| C31 | Evidence binding | Wrong subject/network/prog/code/state/policy/epoch/clock evidence fails the gate |
 | C32 | Durability vs finality | Local persistence never appears as stronger consensus or external-state verification |
 | C33 | Lost authority/partition | Effects pause when fresh grants, fencing or required finality cannot be established |
-| C34 | Upgrade with pending attempt | Unknown incompatible attempt blocks activation; old release remains recoverable |
+| C34 | Upgrade with pending attempt | Original attempt and code retained; no blind replay or old-state adoption over new revision |
 | C35 | Migration failure | No mixed old/new schema, definition, grants or pending-work mapping |
 | C36 | Relocation split brain | Only a fenced executor dispatches; unreachable unfenced predecessor blocks takeover |
 | C37 | Backup closure | Restore succeeds from complete bytes; missing artifact is explicitly reported |
 | C38 | Privacy | Public views/receipts/export omit inaccessible content and metadata |
 | C39 | Unsupported profile | Activation/admission fails before any unsupported economic or consensus effect |
 | C40 | Legacy import | Repeatable import reports malformed records, conflicts, missing predecessors/content |
-| C41 | Headless parity | Same runtime instance is operable through CLI and cyb without separate business logic |
+| C41 | Headless parity | Same neuron/prog/task is operable through CLI and cyb without separate business logic |
 | C42 | Retention boundary | Compacted history is declared unavailable; pending obligations keep required artifacts |
 | C43 | Local source gate | Existing host evaluates without publication, remote consensus or ahead-of-time compilation |
 | C44 | Context identity | Admission, yield and restore retain the same application binding; changes are explicit inputs |
@@ -68,7 +68,7 @@ declaration or an unverified receipt does not satisfy a requirement.
 | C53 | Agent: workspace conflict | Recovery/rollback preserves later user edits and reports partial/conflicting effects |
 | C54 | Agent: delivery retry | Completed task result is resent by delivery identity without rerunning the task |
 | C55 | Agent: transfer closure | Task, context, children, artifacts and budget state transfer with fencing and policy checks |
-| C56 | Parked instances | Suspended work can release VM/model residency and resume from the declared closure |
+| C56 | Parked progs/invocations | Suspended work can release VM/model residency and resume from the declared closure |
 | C57 | Batched persistence | Receipts/cursors/dispatch wait for their own durability boundary despite batching |
 | C58 | Agent: evidence semantics | Tool observations/skill acceptance cannot appear as stronger verification or economic conviction |
 
@@ -95,13 +95,12 @@ reconciliation and single logical consumption.
 
 ## authority probe regression
 
-The initial source review found:
-base Subject(now=11, here=12, caps=13) yields Host caps=11 through run_cell,
-and two sequential ordinary acts yield caps 13 then 12.
-The integrated runtime/ward suite must instead show the same correct host-bound
-grant across all paths, while forged subject caps never widen that grant.
-The first implementation includes this regression in rune's authority suite;
-the [coverage report](../docs/conformance-local.md) scopes the resulting claim.
+Use a distinguishable Subject fixture, for example now=11, here=12 and caps=13.
+Direct, sequential, nested and reactive act paths must deliver the same bound
+host authority. Mutating any program-visible slot must not change that authority.
+Run the actual Rune/host adapter regression together with the current publication
+and dispatch revocation tests. Historical observations and measured coverage
+belong in the release audit rather than being assumed from this fixture.
 
 ## model exploration
 
@@ -115,26 +114,28 @@ grant changes, operation attempts, crashes and restarts. Assert:
 - reconstruction of the selected Snapshot from retained graph records.
 
 Property tests cover canonical schemas, predecessor/dedup handling and recovery
-boundaries. Protocol-specific tests additionally cover the advertised ledger,
-knowledge or distributed-finality contracts.
+boundaries. Protocol-specific tests additionally cover the advertised book,
+shard or distributed-finality contracts.
 
-## implementation report
+## Release evidence
 
-For a concrete baseline, run a counter definition twice with distinct births.
-Admit an increment event in the first instance and commit its resulting state.
-The second instance remains at its initial value. A terminal and a cyb surface
-reading the first instance at the same Head observe the same value. Restart the
-host and verify the same heads/values from graph history, with log presenting
-the admission and result records through a query.
+Run one code artifact as two progs under the same authenticated neuron. An
+increment in the first changes only its state. Park one invocation on a tool
+while another progresses. CLI and cyb read the same head/state after reopening.
+Then use a second explicit neuron/network binding and verify that selection,
+custody, signatures and device policy never leak across those scopes.
 
-Then let the first instance request a tool through ward. Stop the host after
-the tool accepts the request and before its reply is recorded. Recovery must
-show an unknown attempt, reconcile by OperationId, persist the actual outcome,
-and resume the retained continuation once. This scenario combines the essential
-boundaries before adding ledger or knowledge protocols.
+Stop after a tool accepts an attempt but before its response is recorded.
+Recovery must expose Unknown, retain the same operation/attempt, reconcile only
+with correlated evidence and consume the result once. Revocation before another
+dispatch must deny it while preserving the old observation. Multi-origin import
+must additionally retain each original state, reservation, unknown attempt,
+receipt and source fence under distinct progs of the target subject.
 
-A release report lists exact revisions of cell and companion crates, runtime,
-profile, backend, codec and platform combinations exercised, plus unsupported
-features. Each C identifier links to executable evidence or is explicitly
-unimplemented. Documentation-only review verifies internal contracts and links;
-it does not claim runtime conformance.
+A release report lists exact source revisions/features, runtime/profile/backend/
+codec/platform combinations, reproduction commands and unsupported capabilities.
+Each applicable C identifier links to executable evidence; an inapplicable row
+names the absent advertised profile rather than treating documentation as a pass.
+Agent competence remains subject to the separate A-series. Observed coverage is
+recorded in [the implementation audit](../../soft3/audit/neuron-cell/implementation.md)
+and [Soma composition evidence](../../soma/audit/neuron-composition.md).

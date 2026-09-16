@@ -1,180 +1,116 @@
 ---
-title: cell model
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+title: neuron model
+tags: neuron, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
-# model
+# Model
 
-A cell is an addressable owner of bounded state with explicit admission,
-transition, authority, lifecycle and finality rules. A runtime-cell supplies
-behavior through a loaded definition and grows an ability of cyb.
+One neuron is one protocol subject. Its optional runtime installs programs and
+maintains durable invocations under the same authority. A loaded program, view,
+service endpoint or graph partition does not automatically acquire a key.
 
-The definition also obeys [foundations](foundations.md). The
-[agent profile](agent.md) composes these generic mechanics with soma and the
-other organs; cognition and task policy remain application responsibilities.
-
-## entities and names
-
-| Entity | Meaning |
+| Entity | Identity and role |
 |---|---|
-| Definition | Immutable release particle describing behavior and dependencies |
-| Instance | State/history owner identified by its birth particle, CellId |
-| Replica | A host's retained copy at a declared cell head and evidence level |
-| Host | Environment placing instances and connecting stack capabilities |
-| Neuron | Principal that authors or authorizes changes |
-| Name | Resolvable graph binding to a typed target |
-| Endpoint | Transport location of a host |
+| Neuron | Native NeuronId or explicit foreign-domain reference; the acting subject |
+| Robot | Name/configuration attaching neurons and devices; no mandatory root signer |
+| Binding | Current subject/network/policy/custody/device association with revision |
+| Prog | Data ID for an installation under a neuron; pinned source and mutable state revision |
+| Invocation | Data ID for admitted work with its original input, context and allowance |
+| Operation / attempt | Stable effect and dispatch-attempt records, not accounts |
+| Checkpoint / artifact | Content-addressed continuation/data with declared codec |
+| Worker / host / device | Execution placement and observation, independent of subject |
+| GraphSession | Local graph containing many subject chains; no signing identity |
+| Name / endpoint | Typed discovery/presentation and transport; neither proves control |
 
-A host MUST distinguish locally executable instances from observed replicas.
-Immutable particles may be shared across cells. Mutation authority belongs to
-the instance's governing policy. Neither possession of bytes nor physical
-containment grants that authority.
+Subject/domain/network and native key behavior are normative in [identity](identity.md).
+A native neuron can have several bindings across compatible networks. The current
+runtime namespace pins one execution network; incompatible execution roots under
+the same subject use an explicitly separate database/profile. There is no global
+mutable current-neuron inside the library.
 
-A name target MUST declare definition, instance or host kind. An instance
-resolution returns CellId plus the resolution's provenance and freshness.
-Code publication, instance naming and endpoint discovery are independently
-versioned operations. A caller pins the resolved release for an invocation.
+## Activation and program installation
 
-## definition
+Native activation commits `(neuron, snapshot, authorization)` at index zero in
+the subject namespace. Its commit particle is data and is not the subject ID.
+Authorization binds the actual existing key identity, network, policy and root.
+Reactivation of the same subject cannot reset its budget or replace its history.
+Observation-only bindings need no activation or program installation.
 
-Definition fields, in canonical order:
+Prog ID derives from `(subject, installation nonce)` under the versioned schema.
+Two installations of the same source have separate state, without separate keys.
+The local Rune profile validates source/initial state and commits an Active prog
+atomically. Its record contains source artifact, state artifact, revision,
+lifecycle, step limit, max in-flight jobs and sorted allowed-act requests.
+Requests do not grant those acts. Code and admitted dependencies are immutable;
+resolving a floating model/source name at resume cannot replace their revision.
 
-| Field | Type / meaning |
-|---|---|
-| revision | uint; 1 for this model |
-| runtime | particle identifying evaluator semantics and ABI |
-| code | artifact reference |
-| state_schema | particle identifying application state representation |
-| entries | sorted list of Entry records |
-| required_artifacts | sorted artifact references |
-| requested_authority | particle of ward's declarative request document |
-| resource_contract | particle of ResourceContract |
-| checkpoint_schema | optional particle of runtime checkpoint representation |
-| presentation | optional artifact reference for prysm view binding |
-| extension_requirements | sorted schema/protocol particles |
+The generic release contract additionally declares evaluator/ABI, input/output
+and checkpoint schema, required artifacts, requested capabilities and resource
+limits. A profile must reject unsupported required extensions. A pure read/view
+may evaluate against a retained snapshot without creating a persistent prog.
+Publishing a release and attaching a signing subject remain separate actions.
 
-Entry = (name: text, input_schema: particle, output_schema: particle,
-behavior: event | read | migration | view). Entry names are unique.
-Entries are sorted by the exact UTF-8 bytes of name. An event entry proposes
-transitions; read/view entries operate on a fixed
-snapshot and cannot mutate cell state. A migration entry has evolution's rules.
+## Runtime state
 
-Publication is a separately authenticated record binding author and definition.
-The release identity covers its executable dependencies. Runtime code loading
-MUST resolve pinned dependencies; a floating name cannot substitute code during
-an invocation. Definition requests constrain the grant negotiation, not grant it.
+The exact current field order is [runtime suite v1](../model/schema-suite-neuron-v1.txt).
+`neuron/root/1` contains subject, execution network, policy, authority epoch,
+aggregate limit/charged/held, maps of progs, invocations and legacy origins,
+a scheduling cursor, writer generation and optional worker descriptor.
 
-## birth and initial state
+Each invocation pins prog, admitted source, input, optional application context,
+base state revision, checkpoint, status, limit/charged/reserved/used, pending
+operation, result/fault, parent/children/delegated allowance, epoch and ordinal.
+The current persisted statuses are running, waiting, joining, completed,
+cancelled, failed and conflict. Queued/runnable and unknown-outcome are derived
+conditions; they do not invent additional persisted status discriminants.
 
-Birth = (revision, nonce, initial_authority, definition, profile,
-initial_snapshot, lineage).
+Maps are bounded and sorted with unique keys. Current bounds are 256 progs,
+1024 invocations, 4096 origins, 256 direct children and depth 64. Terminal jobs can
+leave the live map only after their claims/outcomes remain durable. Immutable
+artifacts are shared; no duplicate private model/history store is introduced.
+Optional future indexes must preserve ordering, closure and the declared suite.
 
-- nonce is a fresh 256-bit value, persisted before retrying birth publication;
-- initial_authority is a particle of the governing policy;
-- profile names a complete admission/finality/evidence contract;
-- lineage is absent or (source CellId, source Head, purpose particle);
-- initial_snapshot is a Snapshot particle with lifecycle Installed and epoch 0.
+## Admission, effects and commits
 
-CellId is the particle of canonical Birth. Authentication binds that complete
-particle separately, avoiding a circular identifier/signature dependency.
-The initial Head is (index 0, commit CellId). The initial Snapshot MUST agree
-with Birth's definition, policy and profile. CellId remains stable thereafter.
-Ephemeral test instances also use a birth; their receipts state volatile storage.
+A request key derives from `(neuron, nonce)`. Admission content binds prog, input,
+context, epoch, parent and allowance; its event particle is the invocation ID.
+Exact retry resolves the original claim even after archive. Reusing a nonce with
+different content or another prog conflicts. Management requests share the
+namespace and cannot reinterpret an admission nonce as another operation kind.
+Application context is inert data; the host supplies authority independently.
 
-## snapshot
+Each commit binds subject, monotonically increasing index, exact predecessor,
+before/after roots, event, changed records and authorization. Publication compares
+the subject head atomically. Competing proposals cannot both become authoritative.
+Independent computations can run concurrently; adopting a result also requires
+its admitted prog state revision. A stale result is retained as conflict, and an
+external effect is not repeated to rebase it.
 
-Snapshot = (definition, application_state, lifecycle, authority_policy, profile, epoch,
-inbox, continuations, outbox, subscriptions, management).
+Operation ID binds subject/prog/invocation/ordinal. The operation fixes exact
+arguments, network, policy/epoch and executor contract. An attempt is persisted
+before physical dispatch; a crash can leave its outcome unknown. Result and
+consumption claims remain addressable after the pending slot clears. The
+[execution contract](execution.md) governs recovery and limits.
 
-All fields except lifecycle and epoch are particle references. Empty collections
-use canonical empty values with their collection schema. A collection is a
-logical key/value map with a pinned persistent-index schema and root; values are
-typed record particles. Key ordering follows data.md. Large collections use
-incremental stack indexes; a transition MUST NOT require copying or hashing the
-entire inbox, outbox or history. Small maps MAY use canonical sorted lists.
-management holds ordered upgrade/relocation/retirement requests and their state.
-Snapshot identity covers all resumable execution bookkeeping.
-The birth schema omits CellId from initial data so identity is acyclic.
-Later application data may refer to its containing CellId.
+## Distinct orderings and profiles
 
-The collection values are:
+Neuron commit index, prog state revision, invocation ordinal, worker generation,
+SignalChain step, native coordinator position and network height have distinct
+meanings. They MUST NOT be substituted for each other. Foculus/native coordinator
+owns the public signal sequence; one runtime commit need not publish one Signal.
+An execution commit alone establishes no network or economic finality.
 
-- InboxEntry = (event, status, invocation, last_index), where status is admitted,
-  suspended, completed or cancelled and invocation is an optional EventId.
-- OutboxEntry = (operation, stage, attempts, outcome, consumed_by), where attempts
-  is an ordered list of Attempt references; outcome and consumed_by are optional
-  Outcome and invocation references. Stages are defined in execution.md.
-- Continuations map continuation particles to their records; subscriptions map
-  subscription particles to (record, last_cursor, status).
-- ManagementEntry = (request, record, status, last_index); status is pending,
-  blocked, completed or rejected. record is an Upgrade/Relocation/management
-  Event reference. last_index identifies the commit index applying this status.
+A shard owns a region of graph state under its protocol; a book records a token's
+obligations; a service has application governance. These are data/protocol roles,
+not additional runtime subjects. Independent authority may require another
+neuron, while independent state/lifetime only requires another prog/task.
 
-Values refer to preceding records or independent content. They MUST NOT contain
-the containing CommitId as a prerequisite for calculating that same commit.
-Event/operation deduplication remains available through history after completed
-entries leave the live Snapshot; retention boundaries are explicit.
+A filtered replica retains predecessor closure and declared evidence. A sparse
+selection cannot be fed into a complete-chain writer and called full history.
+Historical unsigned rows and legacy origins preserve their original attribution;
+[migration](migration.md) never turns a birth hash into verified key ownership.
 
-Application state is immutable data identified by a particle and interpreted by
-state_schema. External graph reads bind a snapshot/head and evidence; they become
-recorded inputs or witnesses if they affect a transition.
-
-## events and commits
-
-Event = (origin, nonce, destination, entry, payload, context, causation,
-observed_at, deadline, authority_reference).
-
-origin is an authenticated principal; nonce is unique within that origin.
-destination is CellId; entry is text; payload is a particle.
-context is an optional particle interpreted by the entry's application contract.
-The engine preserves its identity without importing that application's ontology.
-The agent profile requires a context binding; a generic counter need not have one.
-causation is a sorted list of event/operation/commit references with explicit kind.
-observed_at and deadline use TimePoint from data.md and may be absent.
-EventId is its canonical particle. Same (origin, nonce) with different content
-is a conflict. An origin persists and reuses its nonce on retry.
-
-Commit = (cell, index, previous, before, after, events, operations,
-authority_decision, executor_epoch, evidence_requirements).
-
-previous is the previous commit particle. before/after are Snapshot particles.
-events and operations are ordered lists of record particles, including management
-and outcome records. Every commit has at least one event. index advances by one,
-with overflow rejected. CommitId is its canonical particle.
-Authentication/evidence envelopes bind CommitId and remain outside its identity.
-
-A Head is (index: uint, commit: particle). A committed head identifies exactly
-one Snapshot. Competing content at the same index is a conflict even when
-transport, signing neuron or an upstream chain-position hash is identical.
-An application transition, act outcome or management event uses this same path.
-
-## cell and protocol ordering
-
-Each instance has a total order of authoritative commits selected by its profile.
-Different cells have independent Head counters. Existing protocol SignalChains
-retain their per-neuron ordering; a single writer coordinator allocates their
-step/previous values and commits through cybergraph.
-
-Cell commit index MUST NOT be substituted for a SignalChain step. One graph
-Signal MAY publish several references according to graph atomicity and cost
-rules. Application schema tags stay in particle data; token fields retain their
-protocol economic meanings.
-
-Replicas of a filtered cell history need cell predecessor closure and evidence.
-They cannot feed a sparse selection into a full per-neuron append API and claim
-a complete SignalChain. Full-chain verification requires the missing records
-or the upstream protocol's authenticated range proof.
-
-Independently settling network cells MUST declare their network protocol,
-writer scope and finality adapter. The baseline preserves existing chain formats;
-new domain-scoped chains require a versioned change in their owning protocols.
-
-## invariants
-
-- One CellId has one birth and one selected authoritative history per profile.
-- Every authoritative commit binds its previous head, state and admitted events.
-- Every mutation is admitted under the governing policy at the relevant head.
-- The state and required resumption data of a durable head are recoverable.
-- Replica verification and possession never confer execution authority.
-- No cell directly overwrites another's state; the receiver admits requests.
+Every acknowledged durable head must retain its state and required resumption
+closure. Possessing, querying or rendering those bytes grants no dispatch rights.
+A program retires independently of the neuron and of the robot attachment.

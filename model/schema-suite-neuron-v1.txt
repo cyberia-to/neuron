@@ -1,0 +1,82 @@
+neuron runtime schema suite revision 1
+
+The UTF-8 bytes of this file participate in schema identities. Incompatible
+changes require a new suite and an explicit migration reader. All data uses the
+canonical atom/pair/list/uint/ref representation of the retained cell v1 codec.
+That original suite remains immutable; its tags and bytes are historical inputs.
+NeuronId is the supported native subject identity, not the hash of an activation.
+
+manifest(name) = pair(atom(0x53434831), fields(text(name), ref(blob(this file))))
+record(name, fields...) = pair(ref(manifest(name)), fields(fields...))
+All records reject extra or missing fields. Maps are sorted unique ref pairs.
+Record names below include /1 and fields appear in their declared order.
+
+neuron/artifact/1(content:ref, codec:ref, byte_length:uint, media_type:text)
+neuron/prog-id/1(neuron:ref, nonce:nonce)
+neuron/request-id/1(neuron:ref, nonce:nonce)
+neuron/event/1(neuron:ref, prog:ref, nonce:nonce, input:ref,
+  context:optional(ref), epoch:uint, parent:optional(ref), allowance:uint)
+neuron/activation/1(neuron:ref, snapshot:ref, authorization:ref)
+neuron/commit/1(neuron:ref, index:uint, previous:ref, before:ref, after:ref,
+  event:ref, records:sequence(ref), authorization:ref)
+neuron/transition/1(neuron:ref, previous:ref, kind:text, payload:optional(ref))
+neuron/root/1(neuron:ref, network:ref, policy:ref, epoch:uint, limit:uint,
+  charged:uint, held:uint, progs:ref, invocations:ref, imports:ref, cursor:uint,
+  writer_generation:uint, worker:optional(ref))
+neuron/prog/1(source:ref, state:ref, revision:uint, lifecycle:uint,
+  step_limit:uint, max_inflight:uint, allowed_acts:sequence(uint))
+neuron/invocation/1(prog:ref, code:ref, input:ref, context:optional(ref),
+  base_revision:uint, checkpoint:optional(ref), status:uint, limit:uint,
+  charged:uint, reserved:uint, used:uint, pending:optional(ref), result:optional(ref),
+  fault:optional(ref), parent:optional(ref), delegated:uint,
+  children:sequence(ref), epoch:uint, ordinal:uint)
+neuron/pending/1(operation:ref, record:ref, tag:uint, arguments:ref,
+  attempt:optional(ref), outcome:optional(ref), stage:uint,
+  value:optional(ref), failed:uint, dispatch:optional(ref), attempt_record:optional(ref))
+neuron/operation-id/1(neuron:ref, prog:ref, invocation:ref, ordinal:uint)
+neuron/operation/1(neuron:ref, network:ref, prog:ref, invocation:ref, id:ref,
+  tag:uint, arguments:ref, policy:ref, epoch:uint, executor:ref)
+neuron/attempt-id/1(operation:ref, number:uint, epoch:uint)
+neuron/attempt/1(operation:ref, id:ref, authorization:ref, executor:ref)
+neuron/outcome/1(invocation:ref, operation:ref, attempt:ref, value:ref, failed:uint)
+neuron/consumed/1(operation:ref, outcome:ref, invocation:ref)
+neuron/authorization/1(neuron:ref, network:ref, policy:ref, epoch:uint,
+  statement:ref, evidence:ref)
+neuron/import/1(origin:ref, legacy_head:ref, legacy_index:uint, prog:ref,
+  invocation:optional(ref), manifest:ref, incompatibility:optional(ref))
+neuron/import-origin/1(origin:ref, legacy_head:ref, legacy_index:uint, prog:ref)
+neuron/import-manifest/1(neuron:ref, network:ref, policy:ref, epoch:uint,
+  target_head:ref, origins:sequence(ref))
+neuron/proposal/1(neuron:ref, previous:ref, after:ref, event:ref, records:sequence(ref))
+neuron/authority-statement/1(neuron:ref, network:ref, policy:ref, epoch:uint,
+  prog:optional(ref), invocation:optional(ref), has_act:uint, act:uint, kind:text, statement:ref)
+neuron/install/1(prog:ref, definition:ref)
+neuron/upgrade/1(prog:ref, source:ref, state:ref)
+neuron/manage/1(prog:ref, lifecycle:uint)
+neuron/outcome-request/1(operation:ref, attempt:ref)
+neuron/wake/1(invocation:ref, operation:ref, nonce:nonce, value:ref)
+neuron/event-response/1(invocation:ref, operation:ref, wake:ref, value:ref)
+neuron/policy-change/1(policy:ref, epoch:uint)
+neuron/rebind/1(invocation:ref, epoch:uint)
+neuron/worker/1(machine:text, environment:text, proof:text, network:ref,
+  warrior:text, version:text, backend:text, worker:ref, device:ref, boot:ref,
+  max_arguments:uint, acts:sequence(uint))
+neuron/placement/1(generation:uint, worker:optional(ref))
+neuron/dispatch/1(operation:ref, attempt:ref, generation:uint, worker:ref)
+neuron/attempt-authorization/1(operation_record:ref, attempt:ref, worker:ref, generation:uint)
+
+Lifecycle: installed=0, active=1, paused=2, retiring=3, retired=4.
+Invocation status: running=0, waiting=1, joining=2, completed=3, cancelled=4,
+  failed=5, conflict=6. Unknown external outcomes are waiting + pending stage 1.
+Pending stage: pending=0, attempt-recorded=1, resolved=2, event-wait=3,
+  event-resolved=4 (outcome/value present, no external attempt).
+Failed is boolean uint 0/1. Other enum values are rejected.
+
+Bounds: max 256 installed progs, 1024 retained invocations, 4096 imports;
+  max 256 act tags, 256 children per invocation, 64 parent levels;
+  max 1,000,000 steps per invocation, 1000 steps per slice, 8 MiB per artifact.
+No secret or host grant is serialized in a checkpoint. The graph owns history.
+Held allowances and charged work cannot be recreated by replay or restart.
+Program state adoption is conditional on base_revision; stale results conflict.
+Children consume parent allowances; terminal parents settle or transfer obligations.
+An attempt is durable before dispatch. Unknown outcomes require reconciliation.

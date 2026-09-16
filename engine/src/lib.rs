@@ -1,11 +1,13 @@
-//! Instance lifecycle and durable execution over graph/runtime ports.
-mod engine;
-mod execution;
-mod records;
-use cell_model::{Builder, Content, Error as DataError, Head, Particle, Source};
-pub use engine::*;
-pub use execution::{Attempt, Progress};
-pub use records::{Live, Pending};
+//! One neuron subject, durable programs and invocations over graph/runtime ports.
+mod jobs;
+pub mod legacy;
+mod migration;
+mod worker;
+pub use migration::*;
+mod neuron;
+pub use jobs::*;
+pub use neuron::*;
+use neuron_model::{Builder, Content, Error as DataError, Head, Particle, Source};
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,12 +21,13 @@ pub enum Error {
     Lifecycle,
     Denied,
     UnknownOutcome,
+    Fenced,
     Budget,
     Unsupported,
 }
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "cell: {self:?}")
+        write!(f, "neuron: {self:?}")
     }
 }
 impl std::error::Error for Error {}
@@ -35,19 +38,61 @@ impl From<DataError> for Error {
 }
 
 pub trait GraphPort: Source {
-    fn head(&self, cell: Particle) -> Result<Option<Head>, Error>;
-    fn resolve(&self, cell: Particle, request: Particle) -> Result<Option<Head>, Error>;
-    fn history(&self, cell: Particle, after: Option<u64>, limit: usize)
-    -> Result<Vec<Head>, Error>;
+    fn commit_once(&self, _write: AtomicWrite) -> Result<Head, Error> {
+        Err(Error::Unsupported)
+    }
+    fn head(&self, namespace: Particle) -> Result<Option<Head>, Error>;
+    fn resolve(&self, namespace: Particle, request: Particle) -> Result<Option<Head>, Error>;
+    fn history(
+        &self,
+        namespace: Particle,
+        after: Option<u64>,
+        limit: usize,
+    ) -> Result<Vec<Head>, Error>;
     fn commit(
         &self,
-        cell: Particle,
+        namespace: Particle,
         request: Particle,
         expected: Option<Head>,
         head: Head,
         content: Builder,
         claim: Option<(Particle, Particle)>,
     ) -> Result<Head, Error>;
+}
+impl<G: GraphPort> GraphPort for &G {
+    fn commit_once(&self, write: AtomicWrite) -> Result<Head, Error> {
+        (**self).commit_once(write)
+    }
+    fn head(&self, n: Particle) -> Result<Option<Head>, Error> {
+        (**self).head(n)
+    }
+    fn resolve(&self, n: Particle, r: Particle) -> Result<Option<Head>, Error> {
+        (**self).resolve(n, r)
+    }
+    fn history(&self, n: Particle, after: Option<u64>, limit: usize) -> Result<Vec<Head>, Error> {
+        (**self).history(n, after, limit)
+    }
+    fn commit(
+        &self,
+        n: Particle,
+        r: Particle,
+        expected: Option<Head>,
+        head: Head,
+        b: Builder,
+        claim: Option<(Particle, Particle)>,
+    ) -> Result<Head, Error> {
+        (**self).commit(n, r, expected, head, b, claim)
+    }
+}
+
+/// A fresh publication cannot resolve an old receipt as newly committed work.
+pub struct AtomicWrite {
+    pub namespace: Particle,
+    pub request: Particle,
+    pub expected: Option<Head>,
+    pub head: Head,
+    pub content: Builder,
+    pub claim: Option<(Particle, Particle)>,
 }
 
 pub struct RuntimeInput<'a> {
@@ -82,6 +127,9 @@ pub enum RuntimeStep {
 }
 pub trait RuntimePort {
     fn validate_value(&self, bytes: &[u8]) -> Result<(), Error>;
+    fn validate_checkpoint(&self, _bytes: &[u8], _limit: u64) -> Result<(), Error> {
+        Err(Error::Unsupported)
+    }
     fn start(&self, input: RuntimeInput<'_>) -> Result<Vec<u8>, Error>;
     fn step(
         &self,
@@ -92,23 +140,19 @@ pub trait RuntimePort {
     ) -> Result<RuntimeStep, Error>;
 }
 
-/// Host authority is never loaded from a runtime subject or checkpoint.
-pub struct Authorization<'a> {
-    pub cell: Particle,
-    pub operation: Particle,
-    pub policy: Particle,
-    pub epoch: u64,
-    pub act: u64,
-    pub allowed_acts: &'a [u64],
+/// A migration publication must atomically validate all origins and fence them.
+pub trait MigrationPort: GraphPort {
+    fn commit_migration(&self, write: MigrationWrite) -> Result<Head, Error>;
 }
-pub trait WardPort: Send + Sync {
-    fn authorize(&self, request: &Authorization<'_>) -> Result<(), Error>;
-}
-pub struct DenyAll;
-impl WardPort for DenyAll {
-    fn authorize(&self, _: &Authorization<'_>) -> Result<(), Error> {
-        Err(Error::Denied)
-    }
+pub struct MigrationWrite {
+    pub neuron: Particle,
+    pub request: Particle,
+    pub expected: Head,
+    pub head: Head,
+    pub content: Builder,
+    pub event: Particle,
+    pub manifest: Particle,
+    pub sources: Vec<(Particle, Head)>,
 }
 
 pub struct Overlay<'a, G> {
