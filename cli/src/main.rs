@@ -127,6 +127,77 @@ fn act(name: &str) -> Result<u64> {
     };
     Ok(0xAC75_0000_0000_0000 + ordinal)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn particle_round_trips_through_hex() {
+        let id: Particle = std::array::from_fn(|i| i as u8);
+        let text = hex(id);
+        assert_eq!(text.len(), 64);
+        assert_eq!(particle(&text).unwrap(), id);
+        assert_eq!(text, text.to_ascii_lowercase());
+    }
+
+    #[test]
+    fn particle_rejects_wrong_length() {
+        assert!(particle("ab").is_err());
+        assert!(particle(&"ab".repeat(31)).is_err());
+        assert!(particle(&"ab".repeat(33)).is_err());
+    }
+
+    #[test]
+    fn particle_rejects_non_hex_and_non_ascii_content() {
+        assert!(particle(&"zz".repeat(32)).is_err());
+        // a multi-byte UTF-8 character keeps the string's byte length at 64
+        // while making every byte-index slice land mid-character; the
+        // `is_ascii()` guard must reject it before any slicing runs.
+        let mut text = "a".repeat(62);
+        text.push('中');
+        assert_eq!(text.len(), 65);
+        assert!(particle(&text).is_err());
+        let mut exact = "a".repeat(62);
+        exact.push('é'); // 2-byte char, brings total byte length to 64
+        assert_eq!(exact.len(), 64);
+        assert!(particle(&exact).is_err());
+    }
+
+    #[test]
+    fn nonce_uses_the_explicit_value_when_given() {
+        let id: Particle = [7; 32];
+        let text = hex(id);
+        assert_eq!(nonce(Some(text)).unwrap(), id);
+        assert!(nonce(Some("not hex".into())).is_err());
+    }
+
+    #[test]
+    fn nonce_generates_a_fresh_random_particle_when_absent() {
+        let a = nonce(None).unwrap();
+        let b = nonce(None).unwrap();
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn act_maps_every_known_name_to_a_distinct_ordinal() {
+        let names = ["emit", "query", "link", "seal", "subscribe", "host"];
+        let values: Vec<u64> = names.iter().map(|n| act(n).unwrap()).collect();
+        for v in &values {
+            assert_eq!(v & 0xAC75_0000_0000_0000, 0xAC75_0000_0000_0000);
+        }
+        let mut sorted = values.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(sorted.len(), values.len());
+    }
+
+    #[test]
+    fn act_rejects_an_unknown_name() {
+        assert!(act("delete").is_err());
+        assert!(act("").is_err());
+    }
+}
 fn inspection(engine: &Engine<Graph, Rune>, cell: Particle) -> Result<Value> {
     let view = engine.inspect(cell)?;
     Ok(
