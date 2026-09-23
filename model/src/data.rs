@@ -333,3 +333,155 @@ impl<'a, S: Source> Reader<'a, S> {
         Ok(fields)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn atom_and_uint_round_trip_including_values_above_u32() {
+        let mut b = Builder::new();
+        let small = b.atom(42).unwrap();
+        let big = b.uint(0xdead_beef_1234_5678).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.atom(small).unwrap(), 42);
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.uint(big).unwrap(), 0xdead_beef_1234_5678);
+    }
+
+    #[test]
+    fn pair_round_trips_its_two_components() {
+        let mut b = Builder::new();
+        let left = b.atom(1).unwrap();
+        let right = b.atom(2).unwrap();
+        let pair = b.pair(left, right).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.pair(pair).unwrap(), (left, right));
+    }
+
+    #[test]
+    fn list_and_text_round_trip() {
+        let mut b = Builder::new();
+        let a = b.atom(10).unwrap();
+        let c = b.atom(20).unwrap();
+        let list = b.list(&[a, c]).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.list(list, 100).unwrap(), vec![a, c]);
+
+        let mut b = Builder::new();
+        let empty = b.list(&[]).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.list(empty, 100).unwrap(), Vec::<Particle>::new());
+
+        let mut b = Builder::new();
+        let text = b.text("hello").unwrap();
+        let mut r = Reader::new(&b, 1000);
+        assert_eq!(r.text(text).unwrap(), "hello");
+    }
+
+    #[test]
+    fn list_over_limit_rejected_by_builder_and_reader() {
+        let mut b = Builder::new();
+        assert!(matches!(b.text(&"x".repeat(4097)), Err(Error::Limit)));
+
+        let mut b = Builder::new();
+        let a = b.atom(1).unwrap();
+        let c = b.atom(2).unwrap();
+        let list = b.list(&[a, c]).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert!(matches!(r.list(list, 1), Err(Error::Limit)));
+    }
+
+    #[test]
+    fn optional_round_trips_some_and_none() {
+        let mut b = Builder::new();
+        let inner = b.atom(5).unwrap();
+        let some = b.optional(Some(inner)).unwrap();
+        let none = b.optional(None).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.optional(some).unwrap(), Some(inner));
+        assert_eq!(r.optional(none).unwrap(), None);
+    }
+
+    #[test]
+    fn optional_rejects_an_invalid_tag() {
+        let mut b = Builder::new();
+        let value = b.atom(0).unwrap();
+        let bad_tag = b.atom(2).unwrap();
+        let malformed = b.pair(bad_tag, value).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert!(matches!(r.optional(malformed), Err(Error::InvalidData)));
+
+        // tag says "present" (0) but the value slot is non-zero: also rejected.
+        let mut b = Builder::new();
+        let zero_tag = b.atom(0).unwrap();
+        let nonzero = b.atom(9).unwrap();
+        let malformed = b.pair(zero_tag, nonzero).unwrap();
+        let mut r = Reader::new(&b, 100);
+        assert!(matches!(r.optional(malformed), Err(Error::InvalidData)));
+    }
+
+    #[test]
+    fn record_round_trips_and_rejects_the_wrong_schema_or_count() {
+        let mut b = Builder::new();
+        let f0 = b.atom(1).unwrap();
+        let f1 = b.atom(2).unwrap();
+        let record = b.record("cell/test-record/1", &[f0, f1]).unwrap();
+
+        let mut r = Reader::new(&b, 100);
+        assert_eq!(r.record(record, "cell/test-record/1", 2).unwrap(), vec![f0, f1]);
+
+        let mut r = Reader::new(&b, 100);
+        assert!(matches!(
+            r.record(record, "cell/other-record/1", 2),
+            Err(Error::UnsupportedSchema)
+        ));
+
+        // asking for more fields than the record actually carries: the field
+        // chain hits its zero sentinel before `count`, so the length check
+        // downstream of `fields()` catches it as invalid data.
+        let mut r = Reader::new(&b, 100);
+        assert!(matches!(
+            r.record(record, "cell/test-record/1", 3),
+            Err(Error::InvalidData)
+        ));
+
+        // asking for fewer fields than it carries: `fields()` itself hits its
+        // own `limit` before reaching the zero sentinel.
+        let mut r = Reader::new(&b, 100);
+        assert!(matches!(
+            r.record(record, "cell/test-record/1", 1),
+            Err(Error::Limit)
+        ));
+    }
+
+    #[test]
+    fn reader_enforces_its_remaining_content_budget() {
+        let mut b = Builder::new();
+        let a = b.atom(1).unwrap();
+        let mut r = Reader::new(&b, 0);
+        assert!(matches!(r.atom(a), Err(Error::Limit)));
+
+        let mut r = Reader::new(&b, 1);
+        assert_eq!(r.atom(a).unwrap(), 1);
+    }
+
+    #[test]
+    fn builder_insert_is_idempotent_for_identical_content() {
+        let mut b = Builder::new();
+        let first = b.atom(5).unwrap();
+        let second = b.atom(5).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(b.content.len(), 1);
+    }
+
+    #[test]
+    fn builder_blob_and_text_enforce_their_size_limits() {
+        let mut b = Builder::new();
+        assert!(matches!(
+            b.blob(vec![0u8; 8 * 1024 * 1024 + 1]),
+            Err(Error::Limit)
+        ));
+        assert!(b.blob(vec![0u8; 8 * 1024 * 1024]).is_ok());
+    }
+}
