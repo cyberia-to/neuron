@@ -124,3 +124,88 @@ impl GraphPort for Graph {
             .map_err(graph_error)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cell_engine::WardPort;
+
+    fn particle(byte: u8) -> Particle {
+        [byte; 32]
+    }
+
+    #[test]
+    fn local_ward_authorizes_only_a_listed_act() {
+        let ward = LocalWard;
+        let allowed = [1u64, 3, 7];
+        let ok = cell_engine::Authorization {
+            cell: particle(1),
+            operation: particle(2),
+            policy: particle(3),
+            epoch: 0,
+            act: 3,
+            allowed_acts: &allowed,
+        };
+        assert!(ward.authorize(&ok).is_ok());
+        let denied = cell_engine::Authorization {
+            act: 4,
+            ..ok
+        };
+        assert!(matches!(ward.authorize(&denied), Err(Error::Denied)));
+        let empty = cell_engine::Authorization {
+            allowed_acts: &[],
+            ..ok
+        };
+        assert!(matches!(ward.authorize(&empty), Err(Error::Denied)));
+    }
+
+    #[test]
+    fn head_and_graph_head_round_trip() {
+        let h = Head {
+            index: 42,
+            commit: particle(9),
+        };
+        let g = graph_head(h);
+        assert_eq!(g.index, h.index);
+        assert_eq!(g.commit, h.commit);
+        assert_eq!(head(g), h);
+    }
+
+    #[test]
+    fn graph_error_maps_conflict_and_head_mismatch_to_conflict() {
+        for storage in [StorageError::Conflict, StorageError::HeadMismatch] {
+            assert!(matches!(
+                graph_error(GraphError::Storage(storage)),
+                Error::Conflict
+            ));
+        }
+    }
+
+    #[test]
+    fn graph_error_maps_commit_unknown_and_preserves_reason() {
+        let e = graph_error(GraphError::Storage(StorageError::CommitUnknown(
+            "reason".into(),
+        )));
+        assert!(matches!(e, Error::CommitUnknown(r) if r == "reason"));
+    }
+
+    #[test]
+    fn graph_error_falls_back_to_graph_string_for_everything_else() {
+        for storage in [
+            StorageError::Fenced,
+            StorageError::InvalidSequence,
+            StorageError::Limit,
+            StorageError::Corrupt,
+            StorageError::Storage("boom".into()),
+        ] {
+            assert!(matches!(
+                graph_error(GraphError::Storage(storage)),
+                Error::Graph(_)
+            ));
+        }
+        assert!(matches!(
+            graph_error(GraphError::InvalidProposal),
+            Error::Graph(_)
+        ));
+    }
+}
