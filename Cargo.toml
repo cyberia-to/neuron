@@ -1,5 +1,5 @@
 [workspace]
-members = ["model", "engine", "rune", "node", "cli"]
+members = ["id", "model", "engine", "rune", "node", "cli"]
 resolver = "2"
 
 [workspace.package]
@@ -8,7 +8,9 @@ edition = "2024"
 license-file = "LICENSE"
 
 [workspace.dependencies]
-cell-model = { path = "model" }
+neuron-id = { path = "id" }
+neuron-model = { path = "model" }
+cell-model = { package = "neuron-model", path = "model" }
 cell-engine = { path = "engine" }
 cell-rune = { path = "rune" }
 cell-node = { path = "node" }

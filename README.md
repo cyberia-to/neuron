@@ -9,6 +9,11 @@ Cell is the shared model and host for addressable, stateful organs, services,
 ledgers and cybergraph regions. In cyb, a loaded cell grows an ability of the robot.
 
 Start with [the specification](specs/README.md).
+The runtime-free `neuron-id` and `neuron-model` packages also supply Cyber's
+identity references and bound action envelopes. The legacy runtime packages
+below still use their `cell-*` names and import `neuron-model` through a Cargo
+alias. [The dependency audit](audit/node-model-dependency-2026-09-23.md) records
+this boundary; publishing the model does not complete runtime convergence.
 The [convergence explanation](docs/cell-convergence.md) records the reasoning,
 source review and relationship to the existing stack.
 The [foundations and Hermes review](docs/foundations-agent-review.md) explains
@@ -91,5 +96,5 @@ needed to implement the contracts; present code is distinguished from the target
 Run `cargo test --workspace` and
 `cargo clippy --workspace --all-targets --no-deps -- -D warnings` here.
 Format only these packages with
-`cargo fmt -p cell-model -p cell-engine -p cell-rune -p cell-node -p cell-cli`;
+`cargo fmt -p neuron-model -p neuron-id -p cell-engine -p cell-rune -p cell-node -p cell-cli`;
 `--all` also traverses the companion path dependencies.
