@@ -1,9 +1,17 @@
 [package]
-name = "cell-model"
+name = "neuron-model"
 version.workspace = true
 edition.workspace = true
 license-file.workspace = true
 
 [dependencies]
-nox.workspace = true
-hemera.workspace = true
+neuron-id.workspace = true
+nox = { workspace = true, optional = true }
+hemera = { workspace = true, optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+
+[features]
+default = ["records"]
+records = ["dep:nox", "dep:hemera"]
+serde = ["dep:serde", "dep:serde_json"]

@@ -1,12 +1,13 @@
 ---
-title: cell documentation
-tags: cell, docs
+title: neuron documentation
+tags: neuron, docs
 ---
 # documentation
 
-- [Foundations and agent review](foundations-agent-review.md) — cyb/soft3
-  alignment, the 21 organ boundaries, Hermes comparison and 0.2 corrections.
-- [Cell convergence](cell-convergence.md) — why one model serves runtime organs,
-  local hosts, buildings, ledgers and knowledge regions.
-- [History ownership](history-ownership.md) — cybergraph, bbg, cell and cyb log.
-- [Specification](../specs/README.md) — complete candidate model for review.
+- [Neuron convergence](cell-convergence.md) — one subject, durable progs and the
+  separate service/book/shard roles; the original URL remains readable.
+- [History ownership](history-ownership.md) — cybergraph, BBG and the Log view.
+- [Legacy cutover](legacy-cutover.md) — inspect, export, migrate and reconcile.
+- [Implementation evidence](implementation.md) and [conformance](conformance-local.md).
+- [Foundations review](foundations-agent-review.md) — current model and original evidence.
+- [Specification](../specs/README.md) — complete accepted model and explicit profiles.

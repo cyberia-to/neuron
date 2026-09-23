@@ -17,7 +17,7 @@ impl Directory {
     }
 
     fn command(&self, args: &[&str]) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_cell"))
+        Command::new(env!("CARGO_BIN_EXE_neuron"))
             .current_dir(&self.0)
             .args(args)
             .output()

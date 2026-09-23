@@ -1,102 +1,92 @@
 ---
-title: lifecycle
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+title: neuron program and task lifecycle
+tags: neuron, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
-# lifecycle
+# Lifecycle
 
-Lifecycle is durable instance state. Host execution status describes the current
-placement and is observed separately. Closing a view detaches its surface.
+Neuron identity, robot attachment, installed prog, invocation and host placement
+have distinct lifecycles. Closing a view changes its surface; stopping a prog
+never deletes the subject or its other work. Detaching/revoking a binding changes
+access through that robot without rewriting protocol history.
 
-## durable states
+## Program state
 
-| State | Admitted work | Exit |
+| Persisted state | Allowed behavior | Supported next state |
 |---|---|---|
-| Installed | Inspection, verification, grant negotiation, activation, retirement | Active or Retiring |
-| Active | Application events, outcomes and management requests | Paused or Retiring |
-| Paused | Outcomes, inspection, authorized resume/upgrade/relocation/retirement | Active or Retiring |
-| Retiring | Outcomes and cleanup needed to settle already committed work | Retired |
-| Retired | Historical reads and export allowed by retention policy | Terminal |
+| Installed | Inspect and negotiate/validate activation; retained by compatibility profiles | Active or Retiring |
+| Active | Admit and run bounded work; record outcomes and management | Paused or Retiring |
+| Paused | Retain outcomes, inspect, authorized upgrade/rebind/resume | Active or Retiring |
+| Retiring | Inspect settled obligations; no new work | Retired |
+| Retired | Historical read/export under retention/access rules | Terminal |
 
-A management request is an authenticated Event. Its result is committed through
-the same head comparison as application work. Repeating a request nonce returns
-its existing receipt. Unsupported changes fail without a lifecycle transition.
-A retired instance can seed a fork with a new birth identity.
+The native local install validates code/state and commits Active directly under
+an existing activated neuron. Caching source alone installs nothing. Native
+activation binds actual subject/network/policy and cumulative budget; it does
+not create a second birth identity. Repeating an exact installation nonce returns
+the same prog; changed code/state/config under that nonce conflicts.
 
-## installation and activation
+Current `manage` refuses Retiring/Retired while any invocation of that prog is
+nonterminal. It does not hide unknown operations in retired history or detach
+unsettled children. A profile with asynchronous retirement must define retained
+obligation ownership and settlement before advertising that feature.
 
-Installation commits Birth, initial state and required artifact closure together.
-A release may be cached before this operation; a cache entry alone creates no
-instance. Grant negotiation references the pinned release and requested rights.
+Activation/installation requires available validated artifacts, compatible
+runtime/checkpoint semantics, supported resource/evidence profiles and a current
+ward grant. Failed admission publishes no successful state. Pure views can use
+retained data without installing a program or obtaining signing custody.
 
-Activation MUST verify:
+## Invocation state and cancellation
 
-1. Definition identity, origin provenance and the governing policy. A local
-   source may use authenticated local provenance; published releases bind their
-   publication record according to the selected profile.
-2. Input/state/checkpoint schemas and required extension protocols.
-3. Availability and integrity of executable and immediate resumption artifacts.
-4. A compatible runtime with enforceable resource limits.
-5. Ward grants and the required executor epoch/placement authority.
-6. Storage durability and profile finality/evidence support.
+An admitted invocation is running/waiting/joining or terminal completed,
+cancelled, failed/conflict. Unknown attempted effects are a waiting condition
+with the original operation/attempt retained. Independent progs continue running;
+shared state adoption checks base revision. An invocation's source/context never
+silently follows a new selection during resume.
 
-Successful activation commits Active and the selected definition/grant references.
-The host may start scheduling only after the required receipt/finality gate.
-Failed activation leaves Installed or Paused and returns a typed cause.
+Before an attempted effect, cancellation can settle charged/reserved work and
+publish a definite cancelled result. An attempted unknown returns UnknownOutcome;
+a live child returns Busy until child obligations settle. A higher-level Soma
+cancel can persist intent and drive that tree to safe boundaries. It does not
+claim an already handed-off provider/tool stopped. Definite observed outcomes
+can be consumed during cancellation without another external call.
 
-## host states
+Terminal top-level task trees may be archived from bounded live maps. Original
+admission/result claims, charges, provenance and artifacts remain graph history.
+Archiving is not a budget reset. A program's retirement has no effect on other
+programs or the robot's ability to observe the subject.
 
-Host placement states are Restoring, Ready, Running, Waiting, Quarantined,
-Unavailable and Detached. They report a pinned durable head where available.
+## Pause, upgrade and authority
 
-- Restoring reconstructs and verifies committed state.
-- Ready can admit/schedule work under policy.
-- Running owns a bounded runtime invocation.
-- Waiting has a recorded continuation or pending result.
-- Quarantined exposes diagnostics and verified history while suspending execution.
-- Unavailable reports missing resources, artifacts, authority or supported code.
-- Detached holds an observed replica or has released execution placement.
+Pause stops new scheduling/dispatch for that prog and preserves checkpoints and
+outcomes. Resume requires current grant/epoch, compatible code and resources.
+A result may be recorded while paused; consuming it waits for permitted execution.
+Upgrades increment the prog state revision and retain each admitted source and
+continuation. Older results conflict with incompatible new state rather than
+silently overwriting it or repeating its effects.
 
-A process restart reconstructs Active instances and resumes eligible work.
-It MUST revalidate authority and placement before dispatching effects.
-A renderer disappearing does not pause the underlying cell.
+Revocation is monotonic and independent of lifecycle. Loading a snapshot cannot
+revive an old grant. Explicit rebind may authorize future work only under the
+current profile and allowed acts; it cannot alter an unknown attempted action's
+original subject/network/arguments. Fully disabled grants still refuse new writes;
+read-only inspection needs no signer. Original evidence remains attributable.
 
-## pause and cancellation
+## Host placement and faults
 
-Pause stops scheduling new application invocations. It reaches a runtime
-checkpoint or abandons an uncommitted pure proposal. Committed acts and outcomes
-remain tracked. Their dispatch after pause requires the pause policy explicitly
-allowing that operation class; the baseline holds undispatched acts.
+Restoring/ready/running/waiting/unavailable/quarantined/detached describe host
+observations, not another durable subject enum. Each observation pins a head and
+reason where available. Restart verifies committed state, settles lost compute
+reservations conservatively and checks current authority/worker generation before
+new dispatch. Missing code leaves data inspectable and work suspended.
 
-Cancellation targets a particular invocation or operation. Before dispatch it can
-commit a definite cancellation. After dispatch it sends a cancellation request
-to the executor and records the observed result. An unconfirmed external
-cancellation remains unknown. Cancellation never rewrites a completed outcome.
+A worker/device/boot change requires an authorized generation transition. Local
+exclusive ownership fences the supported profile; remote partition-safe takeover
+needs its own proof/lease contract. CRDT synchronization does not establish it.
+A native stack pointer is never a portable checkpoint.
 
-Resume commits Active after checking checkpoints, grants, epoch and resources.
-A revoked grant cannot be revived by loading an older snapshot.
-
-## faults and retirement
-
-A runtime fault discards uncommitted mutations and requested acts, then records
-a fault event through a valid management transition. If recording is unavailable,
-the host reports Unavailable and stops execution; it cannot acknowledge a
-durable fault record.
-
-Retirement first enters Retiring. Pending operations are completed, definitely
-cancelled, or explicitly retained as unresolved history under the governing
-policy. Subscriptions stop accepting new application work. Retired records
-contain the final head and disposition of pending obligations.
-
-Retention/garbage collection follows history.md. Retirement preserves identity
-and the selected historical commitments. Removing local bytes changes replica
-availability and does not erase remote history.
-
-## admission under concurrency
-
-Each instance has one authoritative transition at a given predecessor. A host
-may compute independent proposals concurrently, but only a successful head
-comparison/finality decision permits their state/effects to become authoritative.
-Management and application work share this ordering. Receiving an event for an
-incompatible lifecycle returns the current head and LifecycleConflict.
+Runtime faults retain actual resource charges and diagnostic artifacts. Failure
+to persist the fault is reported as storage/unavailable/unknown, never a durable
+success. Management and work share subject-head CAS, so concurrent changes cannot
+both commit against one predecessor. Removing a local replica changes availability,
+not the subject's historical identity or remote facts.

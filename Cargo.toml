@@ -8,10 +8,11 @@ edition = "2024"
 license-file = "LICENSE"
 
 [workspace.dependencies]
-cell-model = { path = "model" }
-cell-engine = { path = "engine" }
-cell-rune = { path = "rune" }
-cell-node = { path = "node" }
+neuron-id = { path = "id" }
+neuron-model = { path = "model" }
+neuron-engine = { path = "engine" }
+neuron-rune = { path = "rune" }
+neuron-node = { path = "node" }
 cybergraph = { path = "../cybergraph", features = ["local-storage"] }
 nox = { package = "cyber-nox", path = "../nox/rs" }
 hemera = { package = "cyber-hemera", path = "../hemera/rs" }

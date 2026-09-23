@@ -1,103 +1,86 @@
 ---
-title: cell foundations
-tags: cell, cyb, soft3, spec
-status: draft
-spec-version: "0.2"
+title: neuron foundations
+tags: neuron, cyb, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
-# foundations
+# Foundations
 
-Cell gives a loaded ability explicit state, authority, lifetime and causal
-history. One implementation serves cyb's extension organ and local hosting;
-protocol profiles add their own admission, economics and finality requirements.
-Convergence shares the model while preserving each profile's actual guarantees.
+Neuron joins protocol identity with optional execution of durable progs. It does
+not add an identity between the named robot and its attached subjects. Independent
+state, continuation, deployment or task cancellation alone needs no new key.
 
-## authority of definitions
+[Cyb anatomy](../../cyb/anatomy.md) governs organ meanings and
+[cyb architecture](../../cyb/specs/architecture.md) fixes subject composition.
+[Soft3 execution](../../soft3/specs/execution-model.md) governs machine,
+environment, proof profile, network and executor selection. Data/terms belong to
+[soft3](../../soft3/specs/terms.md); algorithms and cryptography stay with their
+owners. An older document cannot silently restore a birth-based runtime subject.
 
-[Cyb anatomy](../../cyb/anatomy.md) governs organ meanings. The user's decision
-assigns authoritative history to cybergraph, persistence to bbg/storage and
-presentation to log. Older robot, soma and scripting descriptions are adapted
-to these meanings. Implementation findings document present gaps.
-
-[Soft3 types](../../soft3/specs/types.md) and
-[terms](../../soft3/specs/terms.md) govern data and composition.
-[Cyb philosophy](../../cyb/product/philosophy.md) and
-[product specification](../../cyb/product/spec.md) govern product constraints.
-Each substrate owns its algorithms, cryptography and protocol versions.
-
-## required properties
-
-| Foundation | Cell obligation |
+| Foundation | Required behavior |
 |---|---|
-| One graph | State, context, transitions and provenance are graph-addressable; indexes are projections |
-| Composable data | Schemas use existing data/pair/particle semantics and immutable manifest identity |
-| Local autonomy | One local host runs supported abilities with locally retained dependencies |
-| Instant start | A source gate enters its evaluator through the existing host immediately |
-| User authority | Ward checks each effect; vault operations preserve secret ownership |
-| Contextual action | Agent invocations bind now, soul and relevant graph/workspace versions |
-| Evidence visibility | Receipts distinguish observation, execution evidence, finality and epistemic commitment |
-| Bounded locality | Each step declares finite graph access and execution budgets |
-| Resource economy | Inactive instances park; shared artifacts and incremental state avoid repeated work |
-| Continuous lifetime | View attachment, task lifetime and host placement have independent transitions |
-| Small stable foundation | Application policies compose through versioned data and narrow ports |
+| One graph | State, context, transitions and provenance are graph-addressable; BBG provides durability and Log presents history |
+| One subject | Actions bind an explicit domain-qualified neuron; programs and placements are data/work |
+| Composable data | Existing atom/pair/particle semantics, immutable suites and exact bytes |
+| Local autonomy | Supported behavior runs with locally retained dependencies and no mandatory network |
+| Immediate entry | A source gate uses the existing evaluator/host; no extra service/account per call |
+| User authority | Current ward check at publication/dispatch; vault never gives keys to runtime artifacts |
+| Captured context | Agent work pins soul/model/workspace/source revisions; steering is an explicit successor |
+| Visible evidence | Observation, valid computation, source provenance and network finality are separate claims |
+| Bounded locality | Finite queues, graph access, evaluation slices and declared adapter limits |
+| Retained resources | Spent/held allowances survive restart, archive and child joins |
+| Continuous lifetime | A surface, task, prog, attachment and device have distinct lifecycles |
+| Small foundation | Identity-only consumers do not import execution/storage/GUI/inference |
 
-## instant start and packaging
+## Source entry and packaging
 
-The Rust host composes the stack; rune supplies loadable behavior and policy.
-Command, surface, processor, resolver and companion are trigger conventions over
-the same gate, as in [scripting](../../cyb/reference/scripting.md). They do not
-require separate schedulers, histories or runtime implementations.
+Rust composes hosts; Rune supplies loaded behavior. Command, surface, processor,
+resolver and companion are trigger conventions, not five identities or VMs.
+A local pure read/view uses a fixed snapshot without persistent installation.
+Stateful work installs a prog under an explicitly controlled neuron; it never
+creates custody implicitly. Create/attach may be a simple user action, but the
+host must retain its chosen subject/network and cannot borrow later UI selection.
 
-A host MUST accept a local source gate with a derived minimal Definition and
-bounded default authority. Its normal local path requires no new repository,
-network publication, NFT, remote consensus, separate service installation or
-ahead-of-time compilation. Locally absent runtime/artifacts produce explicit
-availability errors. Reusing an already installed host is the normal path.
+A supported local source needs no new repository, NFT, network publication,
+remote consensus, extra daemon or ahead-of-time build. Missing runtimes/artifacts
+return availability errors. Optimization and proof generation may be separate
+stages; an effect requiring a proof or finality waits at that declared gate.
 
-A pure read/view may execute against a retained host snapshot without creating a
-new persistent instance for every call. Stateful abilities obtain Birth and
-history automatically through the same local host. Consequential acts obey
-durable history and ward gates. A local profile uses local persistence/finality;
-stronger profile requirements are selected explicitly.
+GUI and headless bodies use the same owner APIs. Local models/resources remain
+explicit capabilities; loss of one dependency blocks dependent work, while other
+admitted programs may continue. Untrusted source is bounded by its evaluator;
+a trusted native console/tool adapter must state that it lacks hard preemption
+rather than advertise VM sandbox guarantees for arbitrary host code.
 
-Parsing and lowering proceed directly into evaluation under
-[rune instant start](../../rune/specs/execution.md). Optimization and optional
-proof generation can follow in the background. An operation needing a proof or
-network finality waits at its declared gate; that gate defines its guarantee.
+## Computation, knowledge and resources
 
-Headless and cyb consumers use the same library contracts and local graph store.
-A normal local installation SHOULD provide one executable with embedded local
-hosting. Extra runtimes, models and transports are declared capabilities.
-Loss of a remote dependency blocks dependent work while independent local work
-continues within its policy. A preinstalled local model supports private offline
-agent operation; quality and hardware requirements remain measurable properties.
+An execution proof binds program/input/witness semantics. State verification binds
+an external claim to a chosen root/tier. Provenance identifies a source. Recording
+a model answer or tool receipt proves neither its truth nor an economic judgment.
+Conviction and monetary effects require their actual sigma/ward/network contract;
+runtime bookkeeping is not evidence of universal consensus.
 
-## computation and knowledge
+Graph retrieval, summaries, skills and model revisions are application policy.
+Connectivity does not guarantee optimal model context; cross-model hidden-state
+reuse requires a validated mathematical/codec contract. Neuron carries artifacts
+without making speculative model algorithms a baseline dependency.
 
-Runtime proofs bind program execution under stated witnesses. State verification
-binds the external claim and its tier. Source provenance binds where a statement
-came from. These distinctions remain visible in graph data and presentation.
+VM steps, wall time, memory, provider tokens, billing and physical energy have
+different units and enforcement. Shared child allowances are transferred, never
+minted on retry. Unknown external usage/results retain reservations or explicit
+unresolved state. A cooperative limit is identified as such. Body owns placement
+and telemetry, sigma owns asset accounting, and Soma owns model/tool strategy.
 
-Routine structural/history links use exploratory void valence under the selected
-graph protocol. Recording a tool result or learned skill conveys no automatic
-true/false conviction. Economic commitment requires ward authorization and sigma
-budget under [cyb truth](../../cyb/product/truth.md).
+## Domain and repository boundaries
 
-Graph retrieval, learned summaries and compiled models are implementations of
-application policy. Graph connectivity alone establishes no general guarantee
-of optimal LLM context. Cross-model hidden-state reuse requires a declared
-compatible mathematical/runtime contract and validation. The CT-0 compiler's
-own conformance predicates remain in [tru](../../tru/specs/ct0.md).
-Cell may carry their artifacts and evidence without claiming arbitrary model
-answers are correct or making speculative algorithms a baseline dependency.
+Organs name responsibilities; their count is not a count of repositories,
+processes or signing subjects. Runtime and graph libraries remain reusable without
+Bevy. A service can run several progs; its governance may authorize a neuron.
+A ledger/book and a graph shard retain their protocol rules, independently of
+whether a neuron executes maintenance work for them. Neither becomes a runtime
+subject merely by holding state.
 
-## repository and organ boundaries
-
-The 21 organs name responsibilities, not mandatory process or instance counts.
-Standalone repositories follow reusable contracts, dependency direction and
-independent maintenance needs. One soma task may contain many invocations inside
-one cell; an independently authorized service may need another cell.
-
-Cell model/engine remains usable without Bevy, a model provider or consensus
-node. The [integration map](integration.md) assigns concrete owners. Agent
-behavior is specified as a composition in [agent](agent.md), with measurable
-release criteria in [evaluation](evaluation.md).
+The [integration map](integration.md) assigns owners. Full daily-agent and
+comparative Hermes claims additionally require [agent](agent.md) and
+[evaluation](evaluation.md) evidence; passing a counter/runtime suite alone is
+insufficient. Architecture adoption is not a measurement or deployment report.

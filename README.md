@@ -1,95 +1,124 @@
 ---
-title: cell
-tags: cell, soft3
-status: experimental implementation
+title: neuron
+tags: neuron, soft3
+status: implementation
 ---
-# cell
+# neuron
 
-Cell is the shared model and host for addressable, stateful organs, services,
-ledgers and cybergraph regions. In cyb, a loaded cell grows an ability of the robot.
+Neuron is the protocol subject and its optional durable execution model.
+One robot attaches neurons for different keys, networks and devices. One neuron
+can run several programs and tasks. Programs have data IDs and independent state;
+they do not introduce another signing identity.
 
-Start with [the specification](specs/README.md).
-The [convergence explanation](docs/cell-convergence.md) records the reasoning,
-source review and relationship to the existing stack.
-The [foundations and Hermes review](docs/foundations-agent-review.md) explains
-the 0.2 corrections and the evidence needed to demonstrate a stronger agent.
+The identity-only library requires neither a VM nor a renderer. The runtime uses
+Rune for bounded evaluation, cybergraph/BBG for history and atomic publication,
+and host ward/vault adapters for authorization and signing. Cyb Log renders that
+history.
 
-The Rust workspace now runs local rune cells with persistent state, graph
-history, resumable tool calls and recovery across processes. This is the first
-integration slice of the 0.2 design, with an explicit experimental local profile.
-It does not yet claim the complete runtime baseline or agent/Hermes parity.
+Start with [identity](specs/identity.md), [runtime](specs/runtime-v1.md),
+[authority](specs/local-authority.md), [migration](specs/migration.md) and
+[CLI](specs/cli.md). The [complete specification](specs/README.md) follows the
+accepted one-subject model. Remaining cross-repository work is tracked by the
+[roadmap](../soft3/roadmap/neuron-cell-convergence.md).
+The [convergence explanation](docs/cell-convergence.md) describes the accepted
+model and links the preserved original design evidence.
 
-Build with the companion repositories under ~/cyber and the upstream changes
-listed in [implementation status](docs/implementation.md):
+## Run
 
-```nu
-cd ~/cyber/cell
-cargo build -p cell-cli
-let created = (./target/debug/cell --store demo.bbg create examples/counter.rune | from json)
-./target/debug/cell --store demo.bbg submit $created.cell 7
-./target/debug/cell --store demo.bbg submit $created.cell 5
-./target/debug/cell --store demo.bbg inspect $created.cell
-./target/debug/cell --store demo.bbg history $created.cell
-```
-
-The counter's final state is 12. Each command opens the same graph in a new
-process. `~mem` is application state; `event` is the admitted noun; the returned
-noun becomes the next state. Source executes through parse → lower → interpret.
-
-For effects, [the tool example](examples/tool.rune) suspends at `host(event)`.
-Create it with `--allow host`, submit an input, then use `take CELL OPERATION` to
-record an attempt before execution. Record its result with
-`outcome CELL OPERATION ATTEMPT VALUE`, or its definite failure with
-`fail CELL OPERATION ATTEMPT REASON` followed by `run CELL`. An unresolved attempt
-reopens as `unknown-outcome`; the operator reconciles it by those same identities.
-`emit` is the only built-in automatic executor; other acts require an adapter.
-All acts default to denied. [The profile](specs/local-runtime.md) states limits.
-
-`pause`, `resume`, `cancel` and `retire` control the instance. Paused instances
-can retain outcomes; an unresolved attempted effect blocks cancellation/retirement.
-`--nonce` on create/submit makes retries explicitly reproducible. One origin's
-nonce binds one event across the database, including its destination and context.
-`history --after N --limit K` renders the retained graph records in bounded pages.
-
-History is represented in cybergraph and persisted through its storage stack.
-Cell defines and coordinates its transitions. The cyb log organ presents history.
-
-The default store is a `bbg` directory using BBG's Fjall backend. `--store`
-selects another BBG directory. Graph adapters can also share an already opened
-BBG Database with other storage views. Default builds do not enable redb.
-
-An existing `cell.redb` requires explicit migration or `--store` selection;
-the CLI stops before creating an empty default session. To import it:
+Build with companion repositories alongside this one under ~/cyber:
 
 ```nu
-cargo build -p cell-cli --features legacy-redb-migration
-./target/debug/cell migrate-redb cell.redb bbg
-./target/debug/cell --store bbg history CELL_ID
+cd ~/cyber/neuron
+cargo build -p neuron-cli
+./target/debug/neuron keygen demo.key
+let opts = [--store demo.bbg --key-file demo.key]
+let owner = (./target/debug/neuron ...$opts activate | from json)
+let prog = (./target/debug/neuron ...$opts install $owner.neuron examples/counter.rune | from json)
+./target/debug/neuron ...$opts submit $owner.neuron $prog.prog 7
+./target/debug/neuron ...$opts submit $owner.neuron $prog.prog 5
+./target/debug/neuron --store demo.bbg inspect $owner.neuron --prog $prog.prog
+./target/debug/neuron --store demo.bbg history $owner.neuron
 ```
 
-Replace `CELL_ID` with the instance's existing particle. The destination must
-be fresh. Migration preserves the source and imports through Cybergraph/BBG;
-an interrupted destination cannot be used as a completed session. Since the
-source remains, continue selecting the imported directory with `--store bbg`.
-The [storage migration audit](audit/shared-bbg-database.md) records validation.
+The counter's state is 12. Each command opens the same graph in a new process.
+The local signing profile preserves mudra's H(compressed public key) identity
+and existing ADR-036 bytes. Read-only inspection needs no signing key.
+A key is created only by the explicit keygen command, which refuses an existing file.
 
-## repository
+For encrypted custody, select an existing Vault with two configured replicas:
 
-- specs/ — normative candidate contracts, version 0.2.
-- docs/ — explanations and source findings.
-- model/ — canonical data, manifests, identities and snapshots.
-- engine/ — lifecycle, admission, budget reservations, effects and recovery ports.
-- rune/ — source, subject and bounded checkpoint adapter.
-- node/ — cybergraph/BBG and local authorization composition.
-- cli/ — the same engine exposed as the `cell` executable.
-- LICENSE — the Cyber License used by the companion repositories.
+```nu
+let opts = [--store demo.bbg --vault-home /path/to/vault --vault-root ENTRY_ID]
+./target/debug/neuron ...$opts activate
+```
 
-Companion repositories are siblings under ~/cyber. Relative source links assume
-that layout. [Integration](specs/integration.md) identifies dependency changes
-needed to implement the contracts; present code is distinguished from the target.
+Vault prompts for its unlock password. Add `--vault-domain example.test` for a
+domain-root entry; a spell uses the existing Cosmos path. Neuron receives public
+credentials and signatures; Vault retains the root and performs `sign` after
+authorization and durable replication. The `--key-file` path above remains an
+explicit legacy adapter, mutually exclusive with encrypted custody. Neither mode
+is selected as a fallback when the other fails. See [local authority](specs/local-authority.md).
 
-Run `cargo test --workspace` and
-`cargo clippy --workspace --all-targets --no-deps -- -D warnings` here.
-Format only these packages with
-`cargo fmt -p cell-model -p cell-engine -p cell-rune -p cell-node -p cell-cli`;
-`--all` also traverses the companion path dependencies.
+Install another program under the same neuron to get independent program state.
+Use --inflight to admit parallel jobs. A result based on an outdated program
+revision is retained as a conflict; it cannot overwrite a newer state.
+Parent/child allowances transfer within the same finite neuron budget.
+Archived jobs release space, preserving spent resources and original request claims.
+
+For [the tool example](examples/tool.rune), supply --grant-act host to the host
+and --allow host to install. Submit returns an invocation and operation.
+take NEURON INVOCATION records a signed attempt before an executor may act.
+outcome NEURON INVOCATION OPERATION ATTEMPT VALUE supplies its correlated result.
+After a crash, an attempted operation stays unknown until reconciliation.
+A waiting task does not prevent other programs from running.
+emit has a local display adapter; other effects require their owning adapters.
+
+pause/resume/retire apply to a program; cancel/archive apply to an invocation.
+Program retirement preserves the neuron. Source upgrade preserves admitted
+continuations and uses the same state revision conflict rule.
+
+## Legacy data
+
+The immutable cell v1 schema suite and historical hashes remain unchanged.
+The read-only legacy APIs identify a birth hash as an origin particle.
+They do not cast it into a key identity.
+
+```nu
+./target/debug/neuron --store bbg legacy-inspect OLD_ORIGIN
+./target/debug/neuron --store bbg legacy-history OLD_ORIGIN
+./target/debug/neuron --store bbg --key-file owner.key --grant-act host import NEURON OLD_ORIGIN=INSTALL_NONCE --nonce IMPORT_NONCE
+```
+
+IDs and nonces above are 64 hexadecimal characters. Import several mappings
+together to converge several origins into one neuron. Activation checks all
+source/target heads and atomically fences the original namespaces. An exact
+rerun returns the same receipt. History, completed request claims, checkpoints,
+unknown attempts and resource charges retain their original provenance.
+The original binary refuses a store after semantic activation.
+
+An existing implicit cell.redb prevents accidentally creating an empty default
+BBG store. Backend conversion is separate: build with --features
+legacy-redb-migration, then run neuron migrate-redb SOURCE DESTINATION before
+semantic import. Conversion keeps the source; subsequent work selects the
+destination explicitly.
+
+## Packages and validation
+
+- id: dependency-free common NeuronId, preserving native wire bytes.
+- model: identity/binding/navigation; optional canonical runtime records.
+- engine: programs, invocations, budgets, effects, recovery and migration.
+- rune: bounded source/checkpoint adapter.
+- node: shared graph storage and supported ward/vault composition.
+- cli: the same composition without a GUI.
+
+The local profile provides durable local records and supported key authorization.
+Network proof/finality and the full agent composition have their own conformance
+gates; this workspace does not infer those guarantees from local execution.
+
+Run cargo test --workspace --offline and cargo clippy --workspace --all-targets
+--offline --no-deps -- -D warnings. Format only these packages with cargo fmt
+-p neuron-id -p neuron-model -p neuron-engine -p neuron-rune -p neuron-node
+-p neuron-cli; --all also traverses companion repositories.
+
+The [implementation ledger](../soft3/audit/neuron-cell/implementation.md) records
+actual validation and the remaining cross-repository work.

@@ -1,8 +1,8 @@
 ---
 title: agent evaluation
-tags: cell, soma, hermes, spec
-status: draft
-spec-version: "0.2"
+tags: neuron, soma, hermes, spec
+status: accepted
+spec-version: "0.3"
 ---
 # agent evaluation
 
@@ -14,7 +14,7 @@ to releases claiming the [agent composition profile](agent.md).
 
 | Gate | Evidence required |
 |---|---|
-| Cell conformance | Applicable C-series checks pass for every advertised combination |
+| Neuron execution conformance | Applicable C-series checks pass for every advertised combination |
 | Agent parity | Complete reference capability inventory with supported, adapted or missing behavior and end-to-end checks |
 | Agent superiority | Predeclared comparative quality, recovery and learning results with cost/latency and critical-regression controls |
 
@@ -56,7 +56,7 @@ tasks after development; distinguish training, tuning and held-out sets.
 | A08 | Concurrent file edits and rollback | User edits preserved, conflicts visible and intended workspace result recovered |
 | A09 | Scheduled work during provider/channel failure | Correct catch-up, one logical occurrence and delivery retry without task rerun |
 | A10 | Provider/model change and offline operation | Preserved constraints, disclosure policy, budget and honest capability degradation |
-| A11 | Many idle cells and long retained history | Memory, update cost, startup/recovery latency and bounded query behavior |
+| A11 | Many parked progs/tasks and long retained history | Memory, update cost, startup/recovery latency and bounded query behavior |
 | A12 | CLI, cyb, messenger and media workflow | Equivalent task state, correct artifacts, reconnection and privacy |
 
 Each family expands into executable cases with deterministic outcome oracles
@@ -98,5 +98,7 @@ have redacted public equivalents; disclose what independent reviewers cannot
 reproduce. Raw traces retain context, attempt and result identities so failures
 can be investigated through the same graph history.
 
-Current status: specification only. No comparative benchmark has run and no
-parity, quality, performance or superiority result is asserted.
+Comparative outcomes belong in a dated audit with the frozen manifests above.
+Architecture and migration conformance alone authorize no parity, quality,
+performance or superiority claim; the full-agent reference inventory remains a
+separate release gate under the convergence roadmap §11.

@@ -1,111 +1,96 @@
 ---
-title: evidence
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+title: evidence and profiles
+tags: neuron, proof, spec
+status: accepted
+spec-version: "0.3"
 ---
-# evidence and profiles
+# Evidence and profiles
 
-Evidence is a verifiable statement about specified content at specified roots.
-Its scope and assumptions remain explicit in storage, reads and receipts.
+Evidence binds a particular claim to content, roots, verification semantics and
+explicit assumptions. Neuron identity, prog identity, local execution and network
+participation are distinct axes. A profile defines the evidence required at each
+boundary; it does not create another subject for every governed state object.
 
-## evidence records
-
-Evidence = (claim, subject, roots, verifier, artifact, assumptions, observed_at,
-valid_until).
-
-claim is a named variant: content, authorship, state_inclusion, transition,
-host_observation, availability, or consensus_finality.
-subject is the particle whose claim is being made.
-roots is a sorted list of typed root/head references.
-verifier identifies exact verification semantics; artifact holds the certificate.
-assumptions is a sorted list of typed trust-anchor/model/host/clock references.
-observed_at and valid_until are optional TimePoints with comparable semantics.
-
-The verifier MUST bind the complete claim: cell identity, definition/runtime,
-before/after state, admitted input/witnesses and policy where applicable.
-A valid proof for different code, state, cell, epoch or predicate is rejected.
-Unknown verifiers may be archived as unverified data; they cannot satisfy a gate.
-
-Witness bytes, commitments and the assumptions required to interpret them must
-remain available under the profile's retention contract.
-Malformed evidence returns EvidenceInvalid; missing evidence returns
-EvidenceUnavailable; insufficient freshness returns EvidenceExpired.
-
-## distinct claims
+## Claims and binding
 
 | Claim | Establishes |
 |---|---|
-| Content integrity | Bytes/data correspond to a named particle |
-| Authorship | A principal authenticated the exact record |
-| Inclusion | The record belongs to an authenticated state/history |
-| Transition | The declared computation maps its bound inputs to outputs |
-| Host observation | A named host reports a value/action result |
-| Availability | Named holders retained the declared content under a contract |
-| Consensus finality | The protocol selected this history/root under its rules |
+| Content integrity | Named bytes/data match their particle |
+| Authorship | A supported principal authenticated the exact record |
+| Inclusion | A record belongs to the specified authenticated root/history |
+| Transition | The verifier accepted the computation over its bound inputs |
+| Host observation | A named host reports the specified external result |
+| Availability | Named holders retained declared content under a contract |
+| Consensus finality | The protocol selected the specified history under its rules |
 
-An execution proof conditional on model or external-host output records that
-assumption. It establishes only the bound computation. Authority is checked
-separately. A root anchored into another graph proves the anchor relationship;
-further claims need their corresponding evidence.
+Evidence references the exact verifier/version, certificate, trust anchors,
+subject/network, applicable prog/runtime/input/before/after/policy/epoch and clock
+or freshness bounds. A proof for different code, subject, root or predicate fails
+the gate. Unknown certificates may be archived as unverified data, but cannot
+satisfy an effect requirement. Missing, malformed and expired evidence remain
+distinct diagnostic conditions.
 
-The state organ's T0/T1/T3 labels apply to external-state answers under its own
-contract. Cell stores that result and its evidence. It does not derive T0 from
-local execution, local durability or a bare signature.
+Witness bytes and assumptions must remain available under the retention contract.
+A proof conditional on a model/host answer proves only the bound computation
+under that assumption. A signature establishes authorship and still needs current
+authorization. Anchoring a root proves its anchor relationship; other claims need
+their own evidence. The state organ's external T0/T1/T3 grades retain that organ's
+contract and cannot be inferred from local storage or execution.
 
-## finality
+## Native local profile
 
-Finality = (rule, selected_head, certificate, assumptions).
-rule is LocalAuthority or a protocol particle.
-selected_head is a Head; certificate is an optional evidence particle.
-LocalAuthority identifies the instance's governing local authority and its
-fencing epoch as assumptions. Its receipt is explicitly local.
-A consensus profile requires its protocol's verified certificate.
+[Local authority](local-authority.md) binds H(compressed_pubkey) and NSIG1 to the
+exact canonical action statement. The node verifies each native application
+publication independently. The host also checks the current grant through commit
+and dispatch. The database provides local durability and ordered application CAS.
 
-Durability and finality are independent. A host may retain durable proposals
-before they are selected. Such proposals have no authoritative cell Head and
-cannot dispatch effects. The graph may expose their status by proposal identity.
+This profile records trusted Rune/host execution and correlated observations.
+It advertises local authority rather than a consensus certificate. Native HTTP
+endpoint acceptance and mirror observations carry their actual source/profile.
+Soma local inference retains the pinned model and observed result; it makes no
+cryptographic claim that the model's answer is true.
 
-An operation's gate is the conjunction of the instance profile and any stronger
-operation requirement. The engine MUST verify this gate immediately before
-making an attempt dispatchable. Disputed finality quarantines dependent effects.
-A protocol that admits post-selection reversal must define a compatible effect
-policy; irreversible effects cannot rely on a weaker provisional head.
+Durable proposals or staged imports have no permission to dispatch before their
+authoritative activation. Effect eligibility is the conjunction of the profile's
+required selected state, durability and current authority. A stronger requested
+finality gate requires a supported verifier. Incomplete/unverifiable evidence
+leaves dependent effects undispatched.
 
-## profile record
+## Domain profiles
 
-Profile = (kind, admission_rule, finality_rule, execution_requirement,
-read_requirement, retention, privacy, clock, required_protocols).
+The following roles refine service and protocol contracts, independently of
+whether a neuron runs a prog:
 
-kind is runtime, building, ledger or knowledge. The remaining fields are
-particles naming complete versioned contracts; required_protocols is a sorted
-list. Activation verifies that every mandatory rule has a supported adapter.
-
-| Profile | Mandatory boundary behavior |
+| Role | Required boundary |
 |---|---|
-| Runtime | One authorized execution placement/epoch; LocalDurable commits; explicit host assumptions permitted |
-| Building | Service governance; per-client authentication; a named local-authority or consensus policy; bounded delivery and queries |
-| Ledger | Economic transition/conservation verifier, authority and finality rules, expiry/freshness semantics for conditions |
-| Knowledge | Region membership/admission rules, authenticated state, reconciliation/finality and availability contracts |
+| Executing neuron | Current grant, bounded work, retained state and one-use effect handoff |
+| Service | Client authentication, governance, delivery limits, declared local or consensus authority |
+| Token book/issuer | Conservation, mint/burn/transfer rights, conditions, expiry and economic finality |
+| Graph shard | Membership, completeness, availability, reconciliation and partition finality |
+| Full/partial/light node | Storage/proof duties and verified tip under its participation mode |
 
-A building served by one authority must advertise that authority assumption.
-Several replicas alone do not establish distributed finality.
-A ledger profile is usable only with its named economic protocol. Oikos support
-requires the matching/freshness protocols to be specified and verified.
-Knowledge division requires a division protocol conforming to evolution.md.
+Several replicas alone do not establish distributed finality. A token book does
+not inherit an economic verifier from the neuron engine. A shard split requires
+the protocol's explicit conservation/ownership and routing cutover rules. Oikos
+and distributed profiles must implement their named contracts before advertising
+those effects; the local runtime cannot silently stand in for them.
 
-Profile parameters can be changed only through an authorized upgrade bound by
-both the old and new governance/finality requirements. Unsupported transitions
-return UnsupportedProfileChange. Changing a manifest or host configuration alone
-cannot silently alter the instance's trust contract.
+Each additional profile declares admission, finality, execution/read evidence,
+retention, privacy, clock and required protocols. Activation rejects unavailable
+mandatory semantics. A profile change is an authorized forward transition bound
+by old and new governance; editing a manifest cannot change the trust contract.
+These requirements do not add a generic Profile record to the immutable native
+v1 schema suite.
 
-## verification and liveness
+## Freshness and failure
 
-Verification consumes explicit trust anchors. Anchor updates are authenticated
-events with policy-defined continuity. Clock uncertainty, unavailable ancestors
-or incomplete content cannot be turned into a successful proof result.
+Trust-anchor updates require authenticated continuity under policy. A selected
+head is a correctness claim; a sufficiently recent head also needs liveness and
+clock evidence. Partitions may preserve an old valid proof while making a fresh
+read/condition unavailable. Unavailable ancestors, clock uncertainty or missing
+content cannot become successful verification by timeout or fallback.
 
-A selected head is a correctness claim; a recent head is also a liveness/freshness
-claim. Partitions may preserve the former while preventing the latter.
-A read/condition that needs freshness must reject an expired or unverifiable
-answer even if an old execution proof still verifies.
+A protocol permitting reversal must define an effect policy compatible with its
+provisional state. Irreversible effects cannot rely on a weaker head than their
+declared gate. Lost authority or disputed finality pauses dependent work while
+retaining already observed outcomes and their original attribution.

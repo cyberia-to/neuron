@@ -1,5 +1,5 @@
-//! Rune source/runtime adapter for the local cell profile.
-use cell_engine::{Error, RuntimeInput, RuntimePort, RuntimeStep};
+//! Rune source/runtime adapter for the neuron execution profile.
+use neuron_engine::{Error, RuntimeInput, RuntimePort, RuntimeStep};
 use rune_ast::{Expr, Noun};
 use rune_interp::{
     codec,
@@ -54,6 +54,11 @@ fn literal(value: Noun) -> Expr {
     }
 }
 impl RuntimePort for Rune {
+    fn validate_checkpoint(&self, bytes: &[u8], limit: u64) -> Result<(), Error> {
+        Machine::restore(bytes, limits(limit))
+            .map(|_| ())
+            .map_err(runtime)
+    }
     fn validate_value(&self, bytes: &[u8]) -> Result<(), Error> {
         decode(bytes).map(|_| ())
     }

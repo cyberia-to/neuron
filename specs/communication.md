@@ -1,114 +1,110 @@
 ---
 title: communication
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+tags: neuron, prog, radio, tape, spec
+status: accepted
+spec-version: "0.3"
 ---
-# communication
+# Communication
 
-Cell-to-cell communication uses destination, operation, provenance and receipt
-semantics shared by in-process dispatch and radio transport. Tape frames carry
-the negotiated application dialect. Moving across a process boundary preserves
-authorization and result meaning.
+A message identifies an actual subject and destination independently of the
+transport endpoint and addressed work. Robot names resolve attached identities;
+prog/task/operation IDs correlate execution under a neuron. Radio transports
+negotiated dialects and Tape frames them. A transport identity or a displayed
+name supplies neither current neuron authority nor a new signing subject.
 
-## envelope and authentication
+## Supported boundaries
 
-Envelope = (revision, message_id, sender, destination, mode, content,
-causation, deadline, requested_evidence).
+| Profile | Contract |
+|---|---|
+| Native external action | [Action envelope](action-envelope.md): exact signed request, explicit network/destination, retained receipt |
+| Local task/tool | [Execution](execution.md) and [worker dispatch](worker-dispatch.md): captured context, durable attempt, one-use claim |
+| Native history mirror | Cyb GraphSession/NativeMirror: bounded source-qualified pages and retained observation cursor |
+| Foreign network | Its own address, domain, wire format and verifier; control requires an implemented adapter |
+| Navigation | [Typed routes](navigation.md): resolve/display only; attachment or execution is a separate action |
 
-message_id is a fresh origin-scoped nonce; sender is a principal identity.
-destination is a named variant: instance(CellId), host(HostId), or
-definition(DefinitionId) for inspection only.
-mode is read, write, trade, receipt or control.
-content is a particle of the corresponding typed request/result.
-causation is a sorted list of typed references. deadline is optional TimePoint;
-requested_evidence is a profile requirement particle.
+These contracts define actual wire bytes. The semantic requirements below guide
+additional delivery/subscription profiles without inventing a universal envelope
+already supported by every transport. A radio carrier must negotiate its action
+dialect and receiver verifier before it can carry executable requests.
 
-Authentication is a separate envelope binding the full Envelope particle.
-Repeating (sender, message_id) with changed content produces Conflict.
-Retries preserve Envelope and Event/Operation identities.
-An unauthenticated network payload never becomes an admitted cell event.
+## Authentication, identity and receipts
 
-Transport receipt, local durable receipt, cell admission, commit and external
-completion are distinct stages. A receipt's stage determines what was achieved.
+Every consequential request binds subject, network/profile, destination, action
+kind, exact content, nonce and relevant work/causation. Changing content under an
+existing request identity conflicts. A retry preserves the original request and
+operation identities and addresses the original destination; UI selection changes
+cannot redirect it. Receipt lookup may remain read-only after revocation.
 
-Receipt = (request, stage, cell, head, result, durability, finality,
-evidence, observed_at).
+Authentication covers the complete supported envelope. Deserializing a payload,
+resolving a name or receiving a transport acknowledgement cannot admit an event.
+The receiver independently validates the supported subject profile and authority.
+An unsupported profile returns an explicit error before dispatch.
 
-request references the complete Envelope/Event/Operation being acknowledged.
-cell/head/result/evidence/observed_at may be absent where the stage permits.
-Stages: Received, Admitted, Committed, Completed, Rejected, Unknown.
-Committed requires cell/head, LocalDurable or explicit Volatile, and a finality
-value. Completed requires a result and evidence/provenance appropriate to it.
-Received promises only the stated host ingress durability.
+| Observation | What it establishes |
+|---|---|
+| Transport received | Bytes reached the stated ingress boundary |
+| Durable ingress | That host retained the exact request under its storage contract |
+| Admitted | The owning subject accepted the bounded work once |
+| Committed | A selected state transition and its content are retained |
+| External accepted | The named endpoint accepted the exact action |
+| Completed | A correlated result/failure is retained under the executor contract |
+| Final | The named consensus/economic finality verifier accepted the evidence |
 
-## read, write and trade
+A caller reports the actual stage. A local response or HTTP success cannot be
+presented as a stronger network/economic claim.
 
-Read queries a pinned cell head. It returns value, actual head, evidence and
-freshness. A latest read names the selected head used. A stronger requested proof
-that cannot be supplied returns EvidenceUnavailable or an explicitly requested
-weaker result; downgrade is never implicit.
+## Read, write and trade
 
-Write exports an authenticated fact or submits an Event to another cell.
-The receiver validates provenance, authority, current policy and input schema.
-Its own transition establishes the resulting state. An external writer cannot
-overwrite the receiver's Snapshot.
+Read names subject/graph partition, selected head or requested snapshot, scope,
+evidence and freshness. Responses identify the head actually used. Stronger proof
+requests fail explicitly when unavailable; a weaker observation requires the
+caller's explicit profile. State-changing computation retains the foreign answer,
+head and evidence as input rather than reading an unpinned latest value on replay.
 
-Trade supplies conditions and receipts interpreted by an explicitly supported
-economic protocol. Version 0.2 defines the routing/evidence boundary; the
-economic protocol defines locking, matching, expiry and settlement.
-A host without that protocol returns UnsupportedProtocol. The interface provides
-no generic cross-cell atomic-commit promise.
+Write submits an authenticated action/fact to the receiving subject or governed
+service. The receiver owns admission and state transition. A copied artifact or
+remote write request cannot overwrite its authoritative root. In-process calls
+preserve the same authority and correlation obligations even when serialization
+is unnecessary.
 
-Reads inside a state-changing computation pin the foreign head and record their
-answer/evidence as witnesses. Later foreign updates arrive as new events.
-A local call follows the same rules; shortcuts may avoid serialization while
-preserving all validation and identities.
+Trade uses a named economic protocol that defines locking, matching, conservation,
+expiry, delivery and settlement. Books, issuers, services and shards have the roles
+in the [domain ladder](../../cyber/specs/domain-ladder.md). An unsupported trade
+protocol fails closed. Generic message delivery supplies no cross-subject atomic
+commit or automatic foreign consensus trust.
 
-## delivery and duplicate handling
+## Delivery and uncertainty
 
-Delivery is at-least-once while the sender retains an unexpired pending request.
-The receiver persists deduplication keys alongside admission/outcome state.
-Within the declared retention horizon, an exact retry returns the existing
-receipt and cannot create a second admitted operation.
+The owning outbox retains bounded requests and their original identities. Exact
+retry within retained deduplication scope returns the original receipt. Missing
+or expired lookup evidence yields Unknown/HistoryUnavailable; it does not grant
+permission to execute again. Responses correlate network, request, operation and
+attempt. An unresolved earlier publication cannot be silently skipped by advancing
+a cursor. The native outbox advances only through its accepted prefix.
 
-Expired deduplication history returns HistoryUnavailable/Unknown; it does not
-authorize blind re-execution. Gaps request missing predecessors or a verified
-checkpoint. Conflicts retain both content identities for the governing policy.
-Out-of-order replies are correlated by request/operation/attempt identity.
+Deadline semantics name a supported clock. Expiry before any possible dispatch
+may be a definite rejection. Expiry after a recorded attempt/possible external
+acceptance requires reconciliation. Unknown effects retain obligations; only a
+supported executor's exact lookup/idempotency contract can justify a resend.
 
-Deadlines use their declared clock semantics. If clock evidence is insufficient,
-the deadline cannot be asserted satisfied. Expiry before dispatch yields a
-definite rejection. Expiry after possible dispatch requires reconciliation.
+## Subscription requirements
 
-## subscriptions and cursors
+A profile advertising durable subscriptions binds source, selector, starting
+head/position, requested evidence, retention and bounded delivery policy. Each
+page identifies its scanned prefix and next cursor. Nonmatching positions may
+advance a scan watermark only after complete validation of that prefix. A
+consumer retains its result/progress before acknowledgement, and resumes from
+that committed position after a crash.
 
-Subscription = (subscriber, source, selector, start, delivery_policy, expiry).
-subscriber and source identify cells/principals. selector is a schema/query
-particle; start is beginning, a Cursor, or a verified snapshot Head.
-delivery_policy names acknowledgement, retention and bounded-buffer behavior.
+Snapshot-and-follow must close the race between snapshot and subsequent history.
+Slow consumers receive bounded backpressure or explicit ResyncRequired with an
+available boundary. Silent loss while advancing a durable cursor is forbidden.
+A displayed transient token stream advertises its narrower retention semantics.
 
-Cursor = (cell, index, commit, selector).
-A cursor is valid only against the selected history and selector.
-A subscription delivers (previous_cursor, next_cursor, matching_records,
-scanned_head, evidence). Nonmatching positions can advance the scan watermark.
-A consumer persists its effects/result and cursor atomically before acknowledging.
-Reconnect resumes at the committed cursor. Snapshot-and-follow binds the
-snapshot head and subsequent cursor atomically to prevent missing updates.
+## Privacy and discovery
 
-Slow consumers have bounded buffers. Overflow returns ResyncRequired and the
-available snapshot/history boundary. Silent dropping while advancing a durable
-cursor is forbidden. A history gap has an explicit result.
-
-## discovery and privacy
-
-Name resolution returns identity and provenance. Endpoint discovery locates a
-host serving that identity. Neither operation implies execution authority or
-proof of a state transition. A private instance may remain locally addressable
-without public registration.
-
-A peer authenticates before receiving private references or content.
-Export policy governs payloads, receipts, routing metadata and subscriptions.
-Address changes preserve instance identity. Definitions are immutable and fetched
-by particle once resolved. Unsupported dialects/codecs fail negotiation before
-their content can be executed.
+Discovery returns an identity plus resolution provenance and serving endpoint.
+Access policy applies before exporting private content, selectors, receipts and
+routing metadata. A local/private subject may remain addressable without public
+registration. Endpoint movement preserves subject identity and requires explicit
+profile/network continuity before a pending request can be sent there.

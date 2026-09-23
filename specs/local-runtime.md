@@ -1,10 +1,20 @@
 ---
-title: local runtime implementation profile
+title: original cell v1 compatibility profile
 tags: cell, rust, implementation, spec
-status: draft
+status: archived
 spec-version: "0.2"
 ---
-# local runtime implementation profile
+# Original cell v1 compatibility profile
+
+This page preserves the original wire and behavioral description for migration
+readers. `Cell`, `LocalWard`, births and `cell/*/1` below refer exclusively to that
+retired implementation; they are not current public APIs or active writers.
+The suite file remains immutable. Current execution is specified by
+[runtime v1](runtime-v1.md), [authority](authority.md) and [migration](migration.md).
+Original implementation limitations below describe the archived profile; current
+support and executable evidence belong in the migration audit.
+
+## Retained original description
 
 This experimental implementation profile instantiates a subset of the generic
 contracts for one private local host. It is not the conforming runtime baseline:
@@ -31,7 +41,7 @@ retirement requires resolution of pending obligations.
 
 Schema manifests are ordinary Model B data: pair(atom 0x53434831,
 fields(name, contract_particle)), with fields a zero-terminated right-cons list.
-Name uses the data.md UTF-8 representation; contract_particle identifies the
+Name uses the retained v1 UTF-8 representation described in data.md; contract_particle identifies the
 exact bytes of [schema suite 1](../model/schema-suite-v1.txt), hashed by the
 hemera byte-artifact codec. That file is immutable after this implementation
 version; changing documentation does not change schema identity. A suite change
