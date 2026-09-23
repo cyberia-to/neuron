@@ -1,5 +1,5 @@
 [workspace]
-members = ["model", "engine", "rune", "node", "cli"]
+members = ["id", "model", "engine", "rune", "node", "cli"]
 resolver = "2"
 
 [workspace.package]
