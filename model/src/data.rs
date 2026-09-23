@@ -4,10 +4,24 @@ use std::sync::{Mutex, OnceLock};
 pub type Particle = [u8; 32];
 const MAX_NODES: usize = 131_072;
 const CONTRACT: &str = include_str!("../schema-suite-v1.txt");
+const NEURON_CONTRACT: &str = include_str!("../schema-suite-neuron-v1.txt");
 
-fn contract_id() -> Particle {
+fn contract(name: &str) -> &'static str {
+    if name.starts_with("neuron/") {
+        NEURON_CONTRACT
+    } else {
+        CONTRACT
+    }
+}
+fn contract_id(name: &str) -> Particle {
     static ID: OnceLock<Particle> = OnceLock::new();
-    *ID.get_or_init(|| *hemera::hash(CONTRACT.as_bytes()).as_bytes())
+    static NEURON_ID: OnceLock<Particle> = OnceLock::new();
+    let cached = if name.starts_with("neuron/") {
+        &NEURON_ID
+    } else {
+        &ID
+    };
+    *cached.get_or_init(|| *hemera::hash(contract(name).as_bytes()).as_bytes())
 }
 
 fn schema_id(name: &str) -> Result<Particle, Error> {
@@ -36,7 +50,7 @@ pub enum Error {
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "cell data: {self:?}")
+        write!(f, "neuron data: {self:?}")
     }
 }
 impl std::error::Error for Error {}
@@ -170,8 +184,8 @@ impl Builder {
             return Ok(*id);
         }
         let contract = self.insert(Content {
-            id: contract_id(),
-            bytes: CONTRACT.as_bytes().to_vec(),
+            id: contract_id(name),
+            bytes: contract(name).as_bytes().to_vec(),
             blob: true,
         })?;
         let name_value = self.text(name)?;
@@ -207,6 +221,11 @@ pub trait Source {
 impl Source for Builder {
     fn get(&self, id: &Particle) -> Result<Content, Error> {
         self.content.get(id).cloned().ok_or(Error::Missing(*id))
+    }
+}
+impl<S: Source> Source for &S {
+    fn get(&self, id: &Particle) -> Result<Content, Error> {
+        (**self).get(id)
     }
 }
 pub struct Reader<'a, S: Source> {
