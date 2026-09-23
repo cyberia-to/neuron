@@ -1,96 +1,105 @@
 ---
 title: authority
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+tags: neuron, ward, vault, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
-# authority
+# Authority
 
-Ward owns grants, policy evaluation, delegation, revocation and the execution
-boundary. Vault holds secrets and performs permitted secret operations.
-Cell binds those facilities to instance lifecycle and operation identity.
+Neuron is the subject that authenticates acts. Robot attaches explicit subjects,
+networks, keys and devices. A prog/task ID identifies work under that subject and
+has no separate signing key. Ward evaluates current rights; vault performs
+permitted secret operations; the runtime carries the context through execution.
 
-## authority context
+## Native publication linearization
 
-An execution context binds (CellId, DefinitionId, invocation EventId,
-governing policy/head, grant references, executor epoch, delegated budget).
-Its live handle is owned by the host. Serialized checkpoints hold references
-sufficient to request rebinding; they cannot restore a live grant by themselves.
+The native neuron/prog profile signs the exact canonical statement at preparation
+and rechecks current authority through the graph commit. `Authority::with_current`
+is required for activation, every fresh publication, import and worker dispatch
+claim. An adapter without this guarantee returns Unsupported. A signature made
+before revocation cannot authorize a new publication after revocation.
 
-Program-visible caps are an inspectable projection or opaque handle. Ward checks
-the host-held context on every act. Mutation of rune subject, nested invocation,
-returned host data or a fabricated noun cannot enlarge authority.
-The runtime adapter must preserve the context across all control-flow changes.
+The neuron-node adapter independently verifies subject derived from the key,
+network/policy/epoch, exact predecessor, candidate state/event and signature.
+[Local authority](local-authority.md) defines the unchanged H(compressed_pubkey)
+and NSIG1 bytes. The host's current-grant guard and the storage verifier perform
+different checks; both are required for the supported local profile.
 
-Authentication identifies who submitted a request. Authorization decides whether
-that principal may perform the requested operation at the current state.
-A valid signature or valid execution proof alone does not authorize it.
+An exact historical request lookup is read-only and returns its original receipt.
+The engine's admission lookup validates the subject, nonce and admitted event
+kind. A composing owner may recover its missing catalog receipt after admission
+without admitting another child or obtaining another effect permit. Historical
+receipts never supply current authority.
 
-## policy ownership
+## Bound context
 
-Soul describes the robot's configuration and intended policy. Ward interprets
-that policy, holds grants and issues decisions. The instance's governing policy
-specifies who can activate, upgrade, relocate, delegate and retire it.
-These references are authenticated graph records; their private material follows
-the graph's privacy policy.
+A runtime authority action binds NeuronId, network, policy, epoch, optional prog,
+invocation and act, action kind, exact statement digest and requested act set.
+Product bindings additionally capture attachment revision, supported identity
+profile, device policy and key custody. Selection changes do not retarget an
+already submitted task. A foreign/watch-only binding can observe within policy;
+control requires an implemented proof-of-control and action profile.
 
-An installation manifest requests rights. Activation receives at most the
-intersection of those requests, the issuer's available rights and current policy.
-New rights on upgrade require a new decision. A model-generated preference,
-memory entry or imported instruction is ordinary input.
+Checkpoint/context records contain immutable references sufficient to request
+rebinding. Their deserialization cannot restore live grants. Program-visible
+capabilities are inspectable descriptors or opaque host-bound handles. A mutated
+Rune noun, model response, nested call or forged returned value cannot enlarge
+rights. Authentication identifies the request author; authorization decides
+whether this exact act is allowed at the current boundary.
 
-An invocation pins the soul/configuration version used to form its intent while
-ward checks current policy at the effect boundary. Event.context carries data
-scope and intent, with no independent grant semantics. Context expansion,
-provider failover and child delegation respect disclosure limits; access to a
-source does not automatically authorize transmission to another recipient.
+## Policy and disclosure
 
-Learning promotion follows soma's configured evaluation policy. Any additional
-capability, executable release or economic conviction passes the corresponding
-ward gate. Routine provenance links preserve their exploratory evidence status.
+Soul records configuration and intended policy. Ward interprets it and controls
+installation, activation, upgrade, management, delegation and effect dispatch.
+An allowed-act list in a prog requests rights; activation receives at most the
+intersection with available rights and current policy. New rights require a new
+decision. Imported instructions and learning proposals remain application data.
 
-## delegation and revocation
+An invocation pins the configuration and context that formed its intent while
+ward checks current policy at each effect. Context expansion, model replacement,
+provider failover and child delegation must respect disclosure scope. Reading a
+source does not automatically authorize transmitting it to another recipient.
+Learning promotion that changes executable code, capabilities or economic
+conviction passes the corresponding owner policy and authorization boundary.
 
-Delegation binds recipient instance/definition, permitted acts, target scopes,
-expiry, further-delegation limit and resource budget. Delegated rights are a
-subset of the delegator's current authority. Cross-cell calls authenticate both
-the caller and any explicitly delegated rights.
+## Delegation, revocation and placement
 
-Revocation changes the governing grant state. Before dispatch, ward MUST check
-the current grant and executor epoch. A prior Authorized record documents a
-decision; it cannot override a later revocation. A dispatch racing revocation
-has an explicit linearization point at the enforcing executor and its result
-records that ordering.
+Delegated acts, targets, expiry, further delegation and allowance are bounded by
+the delegator's current rights. Same-subject child work has its own data identity
+and allowance; it introduces no new principal. Cross-subject delivery authenticates
+the actual sender and explicitly delegated rights through its supported profile.
 
-Revocation cannot undo an external operation already accepted. Its outcome
-remains tracked. Rebinding after restart or relocation verifies current policy
-and refuses stale epochs, expired delegation and missing authority evidence.
+Grant replacement is monotonic. Rebinding checks current policy and refuses
+stale epochs, revoked attachments, missing custody or unsupported profiles.
+[Worker dispatch](worker-dispatch.md) binds the selected worker generation and
+holds current authority through the physical handoff. A device label describes
+placement policy; it is not remote hardware attestation.
 
-## all world access
+Revocation cannot undo an already accepted external effect. Its original attempt
+and outcome remain tracked. Recording an observation or cancellation uses current
+management scope without demanding the revoked tool capability again. Unknown
+outcomes retain obligations until definite evidence or explicit reconciliation.
+A multi-device reader or speculative worker gains no independent writer lease.
 
-Graph reads, graph writes, surface output, file/process/network operations,
-device use and cross-runtime invocation pass their appropriate ward boundary.
-Bootstrap components receive explicit host authority before loading cells.
+## World access and privacy
 
-Sandboxed runtimes expose only gated imports or equivalent host acts.
-Native Rust adapters are trusted host code: in-process Rust can access ambient
-process capabilities. A profile needing confinement of untrusted native code
-requires an enforced process/sandbox boundary through body, or a supported
-confined runtime. A manifest scan alone cannot prove confinement of dynamic code.
+Graph writes, protected reads, output, file/process/network/device acts and runtime
+calls pass their relevant host boundary. Sandboxed runtimes expose gated imports.
+Native Rust code in the host process is trusted and has ambient process access;
+a profile requiring confinement must enforce it through a supported sandbox or
+separate process. A manifest or signature alone cannot provide confinement.
 
-Secret references identify vault operations. Secrets do not appear in ordinary
-Snapshot, checkpoint, public receipt or view fields. A permitted secret-returning
-operation uses an explicitly private channel and retention policy.
-Credentials and signing keys are never implicit dependencies of a definition.
+Secret references select vault operations. Mnemonics, keys and live handles stay
+out of ordinary checkpoints, public history, views and receipts. Private return
+values use explicit encrypted storage/channel and retention contracts. Backup
+possession and successful decryption do not by themselves grant execution rights.
 
-## permission interaction
+## Human decisions
 
-A ward decision is allow, deny or pending. Pending includes a durable request
-identity and context digest for the user's decision. The relevant cell waits
-without holding a mutable graph transaction or runtime stack.
-A response binds the exact release, target, arguments and requested rights.
-A changed request requires a new decision.
-
-Denial is a definite outcome and may be consumed by program logic.
-Unavailable authorization infrastructure produces AuthorityUnavailable and leaves
-the operation undispatched. Rendering the prompt is a cyb/prysm concern.
+A permission UI may propose allow, deny or pending under an owning host policy.
+A durable pending request binds exact subject, revision, release, destination,
+arguments and rights; waiting retains no mutable transaction or native stack.
+Changed requests require new decisions. Denial is a definite result, and an
+unavailable authority leaves the effect undispatched. The generic native engine
+currently exposes allow/error through Authority; a UI's pending workflow is a
+composing application contract rather than an additional built-in wire enum.

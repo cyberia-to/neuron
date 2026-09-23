@@ -1,134 +1,107 @@
 ---
-title: integration
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+title: neuron integration
+tags: neuron, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
-# integration and extraction
+# Integration and ownership
 
-## repository boundaries
+One repository preserves the former implementation's Git history and contains
+several crates. It does not wrap an independently identified runtime component.
 
-| Area | Responsibility |
+| Crate | Responsibility |
 |---|---|
-| cell model | Identities, schemas, invariants, lifecycle and transition vocabulary |
-| cell engine | Instance admission/scheduling/recovery and coordination through ports |
-| cell node | Local hosting/replica composition and concrete stack adapters |
-| cell rune | Rune definition/subject/checkpoint mapping into RuntimePort |
-| cell prysm | View binding and input event conversion |
-| cell CLI | Headless composition exercising the production contracts |
+| neuron-id | Common native ID byte contract, no dependencies |
+| neuron-model | Subject/binding/navigation; optional execution record codecs |
+| neuron-engine | Admission, program/task state, budgets, effects and recovery through ports |
+| neuron-rune | Existing Rune evaluator/checkpoint adapter |
+| neuron-node | Graph publication validation, shared BBG adapter, ward/vault and worker composition |
+| neuron-cli | Headless inspection, execution, migration and reconciliation |
 
-Separate Rust crates now follow these dependency boundaries for model, engine,
-node, rune and CLI. The prysm adapter is pending. Model has no Bevy/application
-dependency. Engine consumes ports.
-Node/adapters compose existing stack crates. Published and workspace consumers
-use one extracted implementation.
+Model without default features imports only the ID crate (plus explicit serde
+when requested). BBG uses neuron-id, never engine/node. Identity clients remain
+independent of GUI, storage and VM. Optional node/query projects execution data
+into inf; the dependency points from the host to the query interface, not from
+inf to its executor. GUI views belong to prysm/cyb, not a second neuron renderer.
 
-## ownership
+## Owners
 
 | Owner | Mechanism |
 |---|---|
-| cybergraph | Authoritative graph history, validation/write/query interface, application record publication and conditional head updates |
-| bbg/storage | Durable records/content, authenticated state, transactions and storage barriers |
-| hemera/lens | Content identity and commitments |
-| foculus | Signal ordering, reconciliation, conflict resolution and finality |
-| tape/radio | Framing / transport |
-| rune/nox/wysm/glia | Evaluation and runtime-specific execution |
-| zheng | Execution proof generation and verification |
-| ward/vault | Authorization and effect routing / secret operations |
-| body | Machine resources, devices and process supervision |
-| name/state | Name resolution / verified external-state perception |
-| soma | Agent cognition, task strategy and learning |
-| now/soul/com | Context anchor / configuration versions / admitted user asks and steering |
-| sigma | Asset accounting and monetary budget integration |
-| plan/sense | Future schedules / conversations and delivery |
-| cyb log | History presentation, filtering, search and navigation |
-| cyb memory/brain/time | Filesystem, spatial and temporal graph presentations |
-| cyb | Application assembly, native window/chrome and interaction |
+| cybergraph | Canonical graph history, native coordinator, application validation/publication/query and head CAS |
+| bbg/storage | Atomic durable records, closures, claims, receipts and storage barriers |
+| hemera / lens | Content/structural identity and authenticated commitments |
+| foculus | Signal ordering and named consensus/finality profiles |
+| tape / radio | Framing and transport; neither supplies ambient action authority |
+| rune / nox / glia / wysm | Their declared evaluator/runtime/proof contracts |
+| zheng | Execution proof generation/verification under a named supported profile |
+| ward / vault / mudra | Current permission decisions / scoped secret operations / authentication primitives |
+| body and workers | Device placement, resource enforcement/measurement and process supervision |
+| name / state | Typed name resolution / external-state evidence and freshness |
+| soma | Cognition, model/tool decisions, goals, child strategy and evaluated learning |
+| soul / now / com | Configuration / contextual anchor / captured asks and steering |
+| sigma | Asset and neuron-attachment presentation, monetary accounting |
+| plan / sense | Standing orders / correlated conversations and delivery |
+| log / time | History rendering / past-present-future presentation |
+| brain / memory | Graph rendering / particle filesystem projection |
+| cyb | Product assembly, bodies, interaction and common Host/Registry |
 
-The word log may also occur in storage's write-ahead log or signal log; those
-refer to physical/protocol data structures. They do not create a new organ owner.
+A storage WAL or compatibility signal log is a physical record format, not another
+organ or independent history owner. GraphSession contains many subject chains;
+its name is deliberately not Neuron. Views and task catalogs reuse the common
+Database and reference original content.
 
-## required upstream work
+## Composition contracts
 
-The source evidence below records the initial audit. The first implementation
-adds a local application API to cybergraph/BBG and a bounded runtime to rune;
-[implementation status](../docs/implementation.md) records tested coverage.
-The new private local transaction path does not repair the legacy public
-SignalChain writer or shard-cache interfaces. Their gates remain below.
+- Graph acceptance validates before atomic publication; failures return definite
+  rejection or an explicit unresolved commit. No success is inferred from memory.
+- Content required by acknowledged state/checkpoints remains in the same durable
+  closure; state-only sidecar writes are not sufficient.
+- Rune host authority is independent of mutable subject data and survives nested,
+  sequential and resumed calls. Runtime-declared caps are requests.
+- Worker admission binds machine/environment/proof/network/executor, device/boot
+  and generation. Current grants remain guarded through publication/handoff.
+- Duplicate delivery compares complete original content. Gap, equivocation,
+  invalid signature and missing source are distinguishable failures.
+- NativeMirror/relay and application cursors advance only through durably accepted
+  observations/receipts. Unknown effects are never skipped or automatically rerun.
+- Soma captures versioned context, schemas, memory disclosure, model/provider and
+  workspace. Tasks, child joins and schedules use retained neuron invocations.
+- Private vault/note data retains its existing cipher/key derivation and explicit
+  subject/network namespace. Public history never contains seed/key/plaintext notes.
+- Every advertised runtime/proof/transport combination must declare actual limits,
+  evidence and recovery; a trait stub or status label does not establish support.
 
-| Boundary | Current source evidence | Required contract |
-|---|---|---|
-| cybergraph → bbg | Chain append precedes fallible state insertion | Atomic validation/application and head comparison |
-| graph → storage | Cybergraph::new holds memory; cyb_core::Cell appends tape | Durable graph session with explicit transaction outcome |
-| bbg → disk | ShardStore::commit lacks Result; FjallStore discards errors | Fallible atomic persistence and recovery barriers |
-| graph → content | Current cell tape carries references; content also lives in sidecars | Content closure retained with acknowledged commits |
-| runtime → ward | Rune reads caps from mutable absolute subject axes | Host-bound context across nested/sequential/reactive execution |
-| rune → cell | run_cell exists; deep suspension/witness plumbing is partial | Versioned resumable checkpoints and durable act boundary |
-| graph → cell | Existing graph types expose generic signals, not cell records | Opaque application record validation/projection and conditional heads |
-| signal → replica | Duplicate/equivocation paths are conflated in cyb wrappers | Exact-content dedup, explicit gap/conflict handling |
-| graph → subscription | Callback subscription lacks durable cell cursor contract | Snapshot-and-follow and recoverable cursors |
-| data → wire | Stack schemas/codecs are evolving | Pinned structural identity/codec vectors, dialect registration and bounded decoding |
-| act → placement | Epoch enforcement is not wired as a uniform boundary | Ward/executor fencing and current-grant checks |
-| profile → proof | Host witnesses and verification routes are partial | Explicit supported claim/finality sets and admission rejection for gaps |
-| data → schema suite | Draft names currently lack pinned complete manifest definitions | Immutable schema manifests, bootstrap encoding and persistent-index schemas |
-| now/soul → soma | Agent context is implicit in the 0.1 cell contract | Versioned application-context schema, source manifests and explicit steering |
-| soma → cell | Generic transitions alone do not implement agent behavior | Task/skill schemas, durable joins, model/tool adapters and learning evaluation |
-| body/sigma/ward → budget | Generic quotas lack retained external/child accounting | Shared reservation identities, checked accounting and uncertainty settlement |
-| plan/sense → cell | Scheduling and delivery have independent obligations | Stable occurrence/task/delivery IDs with durable correlation and retry semantics |
+## Migration sources and product paths
 
-These are implementation requirements in the owning repositories. A cell release
-cannot advertise their guarantees merely because an adapter trait exists.
+The two old cyb graph wrappers converge into one cyb-core GraphSession over the
+existing native coordinator. Old graph.log/particles.jsonl files are strict
+migration inputs; shared graph/archive APIs retain them and retire old append
+entry points. The true-cyber client uses the same owner. Lost public-key provenance
+in old analytics remains unresolved history, not a fabricated native identity.
 
-## migration sources
+Legacy birth/state/checkpoint/outbox data is translated by the
+[migration contract](migration.md), with immutable old schema bytes, explicit
+subject/prog mappings and source/target fences. Backend conversion is independent
+of semantic import. A source is not deleted when target acceptance is uncertain.
 
-- cyb/core/src/cell.rs and cyb/crates/cyb/src/cell.rs converge into one host/replica
-  implementation. Preserve supported consumer behavior through adapters.
-- cyb's signal construction delegates to the shared writer coordinator and
-  existing graph protocol types; independently produced step counters disappear.
-- cyb/shell/src/worlds/robot/mod.rs supplies the page-loading/presentation seam.
-  Connect actual loaded definitions to the visible path through the adapter.
-- rune/rs/interp/event.rs supplies the existing reactive shape. Generic evaluator
-  and continuation work remains in rune; lifecycle mapping belongs to cell.
-- cyb's graph.log and particles.jsonl become migration inputs to durable graph
-  sessions. Import validates framing, content identity, ordering and completeness.
+Cyb terminal/Bevy and headless Soma use shared Host/Registry and agent composition.
+Loaded Rune evaluation uses the existing evaluator and prysm chunks. Navigation
+to a neuron, prog or page does not create an account or execute source. Historical
+URI aliases resolve only through the bounded compatibility adapter.
 
-Import is repeatable by original record identity and reports rejected/conflicting
-records and missing bytes. It never treats missing history as an empty success.
-Migration retains original data until the imported state/head and required
-content are verified. Historical imports lack new guarantees unless the evidence
-exists; an old unsigned or unproven record remains labelled accordingly.
+A robot extension is a prog. Skills may be instructions/artifacts interpreted by
+Soma; executable skills install code under an actual subject. Services can use
+several programs; book/issuer and shard/validator rules remain domain protocols.
+A new signing neuron requires independent authority/attribution, not merely an
+independent process or stateful feature.
 
-## cell profiles and the 21 organs
+## Acceptance
 
-A repository owns implementation, an organ names a responsibility, and a cell
-instance owns state/lifetime/authority. Their counts are independent.
-Existing native components can expose cell-compatible entrypoints while their
-foundational libraries remain statically linked.
-
-Soma tasks run inside an owning runtime-cell. A new cell is appropriate for an
-independent state/authority/deployment boundary, rather than every inference
-step. Instructional skills remain particles interpreted by soma; executable
-extensions can provide cell definitions.
-
-The [agent composition profile](agent.md) specifies required semantic roles and
-observable behavior. Soma and the relevant organs own their exact versioned
-schemas. Cell imports their particles and contracts through ports; model/engine
-has no dependency on an agent-specific task enum or provider SDK.
-The [foundation constraints](foundations.md) preserve immediate local gate
-execution and bounded resource use throughout extraction.
-
-Cyb's current anatomy governs soul/configuration, avatar/visualization,
-now/context and log/history presentation when adapting older soma documents.
-The specification introduces no separate global configuration or memory owner.
-
-## acceptance boundaries
-
-Runtime-cell and local host support are the first conformance target.
-Remote building support adds authenticated delivery and the declared service
-finality contract. Ledger/knowledge support adds their exact protocol suites.
-Every advertised combination of runtime, profile, storage and transport must
-state its supported schemas, evidence, durability and limits.
-
-Agent readiness additionally requires the application-profile schemas, adapters
-and [evaluation gates](evaluation.md). A durable counter host is the first
-integration slice; full daily-agent functionality is a separate release gate.
+Local durable execution, authenticated native delivery and the bounded local Soma
+profile have separate owner tests and composition evidence. Distributed writers,
+foreign control, consensus proofs and full provider/channel parity require their
+own gates. Unsupported required profiles fail before effects. The
+[conformance contract](conformance.md) defines behaviors; actual revisions,
+feature sets, fault probes and consumer vectors belong to
+[the audit](../../soft3/audit/neuron-cell/implementation.md).

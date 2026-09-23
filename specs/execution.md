@@ -1,205 +1,130 @@
 ---
 title: execution
-tags: cell, soft3, spec
-status: draft
-spec-version: "0.2"
+tags: neuron, prog, soft3, spec
+status: accepted
+spec-version: "0.3"
 ---
-# execution
+# Execution
 
-A runtime evaluates a pinned definition against a pinned Snapshot and explicit
-input. The host supplies a separate authority context and finite resource budget.
+A neuron executes admitted progs through the existing Rune machine. Work pins
+code, state revision, input, context and a finite allowance. Ward supplies current
+host authority independently of those data. The exact persisted fields belong to
+[data](data.md) and [runtime v1](runtime-v1.md); the interfaces below describe the
+native adapter rather than a second VM or a hypothetical wire format.
 
-## runtime interface
+## Runtime boundary
 
-The model interface has three operations:
+`RuntimePort` validates values/checkpoints, starts a `RuntimeInput`, and advances a
+checkpoint with an optional recorded reply and bounded slice. `RuntimeInput`
+contains source/state/event bytes, optional context particle and step limit.
+`start` returns serializable checkpoint bytes. `step` returns:
 
-~~~text
-start(definition, snapshot, admitted_event, authority_context, budget) → RunStep
-resume(definition, checkpoint, recorded_input, authority_context, budget) → RunStep
-inspect(definition) → RuntimeSupport
-~~~
-
-authority_context is the host-bound ward context. Event.context is a separate
-immutable application input; it cannot grant authority. Resume obtains that
-binding from the retained continuation and records any authorized replacement.
-
-RunStep is one of:
-
-- Complete(application_state, result, view_artifacts, requested_operations, witnesses, used_resources).
-- AwaitAct(checkpoint, requested_operations, witnesses, used_resources).
-- AwaitEvent(checkpoint, subscription_request, witnesses, used_resources).
-- Yield(checkpoint, used_resources).
-- Fault(code, diagnostic_artifact, used_resources).
-
-used_resources is the slice's metric/measurement map with each metric's declared
-aggregation rule, such as cumulative steps or peak memory. Host accounting
-validates it and retains consumption/reservations with the resulting transition.
-Successful and failed work both consume resources. External usage is reconciled
-from executor/provider evidence and remains uncertain when that evidence is absent.
-
-Each successful stateful step proposes an updated Snapshot and a commit. The engine
-validates schema, quota, authority requirements and predecessor before publishing.
-Uncommitted requested operations are inert. A continuation resumes only with
-input matching its persisted selector and expected schema.
-
-Admission records InboxEntry(admitted) once for the original EventId. Subsequent
-commits may reference that Event as causation without admitting it again.
-Suspension/resumption changes its existing invocation state; completion records
-InboxEntry(completed) and the result artifact matching the entry's output schema.
-The host arbitrates resumption so a retained continuation has one successful
-consumption transition even if several matching deliveries race.
-
-Complete ends the current invocation. Requested operations may remain pending
-only when the entry's governing policy explicitly permits detached work and
-provides a result-handler event entry. They retain their OperationId, authority,
-budget and outcomes. Otherwise the invocation must AwaitAct until its dependent
-operations resolve. A Completed invocation receipt reports its result and any
-explicitly detached operation references; it never implies those effects finished.
-
-Read/view entries receive immutable snapshots and a restricted authority context.
-Their outputs are artifacts or prysm chunks. They cannot issue a state mutation
-or consequential external act. A user interaction with a view creates an Event.
-
-## checkpoints
-
-Continuation = (definition, runtime, checkpoint_schema, artifact, trigger,
-base_head, invocation, context, resources_used).
-
-trigger is a named variant: operation_result(OperationId), event(selector
-particle), or scheduler_yield. invocation is the originating EventId.
-context is the optional application-context particle active at suspension.
-Initially it equals Event.context; explicit steering may establish a successor
-under the application contract. Recovery cannot silently resolve it to latest.
-base_head identifies the state at which the checkpoint was produced; later
-management/outcome records may advance the head without changing that checkpoint.
-The engine verifies that the current Snapshot still contains the continuation
-before resuming it.
-
-The artifact serializes everything required by the adapter to resume, excluding
-raw host pointers, runtime-local grant handles and secret material.
-Epoch/grants are rebound from current policy. Checkpoint schema and runtime
-semantics must match or have an authorized migration.
-
-A runtime can advertise complete-entry-only execution if each invocation is
-bounded and restartable before commit. Such a runtime cannot satisfy definitions
-requiring durable mid-entry suspension. A native stack address is never a
-portable checkpoint.
-
-## operations
-
-Operation = (id, invocation, target, act, arguments, required_authority,
-result_schema, deadline, retry, finality_gate, checkpoint).
-
-target identifies a cell, a surface or an executor using a named variant.
-act and required_authority are protocol/schema particles; arguments is an
-artifact/particle reference; deadline is optional TimePoint.
-checkpoint is an optional Continuation reference. finality_gate comes from
-the governing profile and may be strengthened by this operation.
-
-retry is one of:
-- never;
-- deduplicated(executor_contract, maximum_attempts);
-- reconcile(executor_contract, maximum_attempts).
-
-An executor contract defines idempotency scope and retention horizon, query by
-operation identity, cancellation and result evidence. A generic retry promise
-without those semantics fails admission.
-
-Attempt = (id, operation, number, epoch, authority_decision, dispatch_time,
-executor_contract).
-
-Outcome = (operation, attempt, disposition, value, evidence, observed_at).
-disposition is succeeded, failed_definite, denied, cancelled_definite or unknown.
-value and evidence are optional particles; a successful result must match
-result_schema. An unknown outcome may later be resolved by a correlated Outcome.
-Conflicting terminal outcomes are retained and trigger reconciliation.
-
-## operation progression
-
-| Stage | Persisted fact and permitted next action |
+| Result | Meaning |
 |---|---|
-| Pending | Proposed act and continuation committed; authorization may be sought |
-| AwaitingGrant | Ward decision pending; effect remains undispatched |
-| Authorized | Decision bound to release, arguments, epoch and policy |
-| AttemptRecorded | Attempt identity durable; dispatch may happen after rechecking authority |
-| Dispatched | Execution observed started; result or reconciliation awaited |
-| Resolved | Definite outcome committed; continuation may consume it once |
-| Unknown | Result cannot be determined; reconciliation policy applies |
+| `Done { result, used }` | Candidate result/state; adoption still checks prog revision |
+| `Yield { checkpoint, used }` | Runnable continuation after a bounded slice |
+| `Act { tag, arguments, checkpoint, used }` | Suspend for an explicitly gated host act |
+| `Event { tag, selector, checkpoint, used }` | Suspend for a matching recorded event |
+| Error | Retained bounded failure; no successful state adoption |
 
-Stages are projections of graph records. A crash after AttemptRecorded can occur
-before or after actual dispatch, so recovery treats such an attempt as potentially
-executed. It queries the executor or applies the declared idempotency contract.
-The same OperationId is used for a deduplicated retry. Blind retry of an
-unreconcilable consequential operation is forbidden.
+`used` is cumulative runtime steps for this invocation, not the slice delta.
+The engine checks monotonicity and that its increase fits the reserved slice.
+A malformed result or accounting report fails the invocation. The adapter's
+checkpoint/value validators and artifact limits run before publication.
 
-A result can be consumed once per recorded continuation. Re-delivery returns the
-existing outcome/consumption receipt. Persisting an outcome and scheduling its
-consumer follows the history transaction boundary. Cancellation and deadlines
-have the same unknown-outcome rule.
+Native invocation status is Running, Waiting, Joining, Completed, Failed,
+Cancelled or Conflict. Queued means admitted runnable work; unknown means a
+Waiting invocation has a recorded attempt without a definite outcome. These are
+scheduler/operation projections, not additional persisted enum values.
 
-## determinism and observations
+A completed result becomes prog state only against its admitted revision.
+Concurrent pure evaluation may proceed; one CAS orders authoritative publication.
+A stale result is retained as Conflict. Waiting on a tool, child, event or model
+never holds a mutable graph transaction. Read-only views return artifacts/prysm
+output; a UI action is a separately admitted request with captured authority.
 
-Time, randomness, network replies, model outputs, filesystem reads and user input
-that affect a committed transition are explicit events/witnesses. Pure replay
-consumes recorded values. It MUST NOT repeat completed external acts or draw new
-randomness to reproduce an old commit.
+## Checkpoints and replay
 
-A deterministic adapter declares its exact runtime/code semantics. Native or
-model-host computation may be trusted under the profile; its evidence identifies
-the trusted host and assumptions. Recording a value alone proves no truth about
-the external world.
+A checkpoint binds the admitted source and invocation, runtime semantics,
+application context, used steps and suspension point. The current Rune codec
+serializes the machine and continuation stack. Host pointers, live grant handles
+and secrets cannot become portable checkpoint state. Operation/event metadata
+lives in the invocation record and determines which reply can resume it.
 
-Synchronous rune Host calls must enter the same operation/receipt discipline.
-An adapter either yields at the boundary or durably records and resumes the
-operation through the host protocol. Returning a fake successful value when an
-act is unsupported is forbidden.
+Resume uses retained code/context and the correlated outcome. Current authority
+is rebound separately and may deny the next transition. Incompatible legacy
+checkpoints remain inspectable and paused; an authorized migration must validate
+the replacement before execution. A native stack address or reinference of an
+old response cannot substitute for a checkpoint.
 
-## budgets, streaming and scheduling
+Time, randomness, file contents, model output and network results that influence
+state enter as retained input or observations. Replay consumes those records.
+It must never repeat a completed act, select a newer model implicitly or invent
+new randomness to reconstruct an old commit. Content integrity establishes the
+recorded bytes; external truth depends on their evidence and trust profile.
 
-The host intersects caller, definition, delegated and machine budgets.
-Compute/memory limits are enforced by the runtime/placement mechanism before
-unbounded execution is admitted. Budget exhaustion yields a valid checkpoint or
-records a bounded fault. Recursive cell calls consume a delegated budget with
-a bounded call depth; waiting never holds another cell's write lock.
+## Host operations
 
-Consumed budget and outstanding reservations are retained across yields,
-restarts, retries and child calls. A parent allocates child budgets atomically
-before dispatch and cannot spend the same reservation concurrently. Uncertain
-external usage keeps its reservation until reconciliation or explicit settlement.
-A budget increase is an authorized graph event. Runtime accounting and external
-billing state their respective enforcement and uncertainty boundaries.
+A suspended act receives an operation ID derived from its invocation and ordinal.
+The record pins arguments, result contract and original context. A durable
+attempt binds the operation, exact authority statement, executor and generation
+before physical dispatch. [Worker dispatch](worker-dispatch.md) specifies the
+one-use permit, durable dispatch claim and current grant at the handoff.
 
-For a cumulative budget that must survive crashes, the host reserves a bounded
-runtime slice durably before running it. A crash before usage is recorded keeps
-the reservation charged conservatively until settlement. Discarding an
-uncommitted proposal does not refund compute already spent. Per-request volatile
-limits advertise that narrower lifetime explicitly.
+| Phase | Permitted action |
+|---|---|
+| Proposed | Validate allowed act and obtain current authorization |
+| Attempt recorded | Claim dispatch once under the selected worker generation |
+| Attempt unresolved | Report Unknown; obtain correlated observation/reconciliation |
+| Outcome recorded | Consume the exact result/failure once into the continuation |
+| Consumed | Return its retained receipt on exact duplicate delivery |
 
-Cross-cell delegation commits the reservation in its owning budget scope before
-child admission. Its grant names that reservation. A lost reply cannot free it;
-release requires a definite settlement/cancellation or reconciliation record.
-This uses the owner's ordered history and receipts, with no assumed distributed
-atomic transaction. Budget record schemas belong to the selected accounting
-contract and are retained in state/history with their enforceable grants.
+A crash after an attempt may precede or follow the external effect. Recovery
+therefore cannot infer that it is safe to execute again. The native generic act
+profile has no automatic retry. An adapter that supports reconciliation defines
+its own exact lookup/idempotency scope, retention, destination and evidence;
+[native actions](action-envelope.md) are one such separate contract. A timeout,
+cancellation or transport disconnection never proves that an effect did not run.
+Conflicting outcomes are rejected; exact retries return the retained result.
 
-One authoritative transition order permits multiple in-flight invocations and
-operations. Each proposal validates its base state; a stale result requires
-application reconciliation before adoption. Pure/model work may run concurrently
-under a bounded scheduler. It does not hold the cell writer lock while waiting.
-Completed work and live continuations identify the state and context they used.
+The current invocation has one pending operation. Detached effects require a
+separate admitted invocation/owner and allowance. Completing a parent cannot
+silently abandon unsettled children or an unknown effect. Observation and
+cancellation use current management scope and retain attribution to the original
+attempt, including after tool authority was revoked.
 
-Per-step graph access is bounded by bytes, results, hops and deadline. Persistent
-indexes update changed paths; immutable code, state fragments and model artifacts
-can be shared. Parked cells retain resumable references and need no resident VM
-or private model copy. Body owns physical placement and resource measurement.
+## Resources and scheduling
 
-Scheduling is fair among admitted instances according to host policy. Plan owns
-future schedules; cell schedules execution of already admitted work.
-Timers arrive as events from a clock provider with declared semantics.
+Admission reserves from the neuron's aggregate finite allowance. Before runtime
+evaluation the engine persists a slice reservation, currently at most 1000 steps.
+Successful accounting charges the actual delta. A failed or lost settlement
+charges the reservation conservatively. Charged plus held never exceeds the
+limit, including after restart, archive, cancellation and upgrade.
 
-Streaming output has stable invocation identity and monotonically numbered
-chunks. A chunk advertised as resumable is durably recorded or included in a
-durable artifact manifest before acknowledgement. Transient view deltas carry
-an explicit transient flag and may be reconstructed or lost. Terminal result
-artifacts are sealed and referenced by the completion commit.
-Chunk batching is allowed; the advertised cursor never passes durable data.
+Child admission transfers an available parent allowance rather than reserving it
+twice at the neuron root. Parent/child maps, depth and outstanding work are
+bounded. Settlement returns only unused allowance and preserves actual charge.
+Soma owns task strategies, join policy and schedule occurrence identity; the
+engine owns bounded invocation progression and durable accounting. A future
+cross-subject delegation protocol must record ownership and reservations at
+both subjects without assuming a distributed atomic transaction.
+
+CPU steps are distinct from model tokens, wall time, bytes, GPU work and money.
+Each host adapter declares its additional limits. Current in-process native
+adapters are trusted code; cooperative inference limits do not claim hard GPU
+preemption. A console's process capabilities do not make it an agent tool grant.
+Untrusted native execution requires an enforced process/device boundary.
+
+Fair polling advances a persisted cursor and skips work that cannot run. Parked
+progs retain references and require no resident VM or private model copy. Graph
+reads, decoding, queues and output sizes have explicit bounds; the owning profile
+must reject excess before admitting an effect or claiming durable success.
+
+## Streaming
+
+Task/invocation/operation/attempt identity correlates output across selection
+changes. Terminal artifacts are durable before completion is reported. Current
+local model token deltas are bounded transient presentation events; reconnect
+reads the retained task result, rather than claiming token-by-token replay.
+A profile advertising resumable streaming must retain acknowledged chunks or a
+sealed manifest and advance its cursor only through durable content.
