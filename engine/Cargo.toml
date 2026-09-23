@@ -1,7 +1,7 @@
 [package]
-name = "cell-engine"
+name = "neuron-engine"
 version.workspace = true
 edition.workspace = true
 license-file.workspace = true
 [dependencies]
-cell-model.workspace = true
+neuron-model.workspace = true

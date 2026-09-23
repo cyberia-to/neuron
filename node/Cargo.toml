@@ -1,13 +1,19 @@
 [package]
-name = "cell-node"
+name = "neuron-node"
 version.workspace = true
 edition.workspace = true
 license-file.workspace = true
 [dependencies]
-cell-model.workspace = true
-cell-engine.workspace = true
-cell-rune.workspace = true
+neuron-model.workspace = true
+neuron-engine.workspace = true
+neuron-rune.workspace = true
 cybergraph.workspace = true
+mudra = { package = "cyber-mudra", path = "../../mudra", default-features = false }
+inf-source = { path = "../../inf/rs/source", optional = true }
+inf-value = { path = "../../inf/rs/value", optional = true }
+vault = { package = "cyber-vault", path = "../../vault", default-features = false, features = ["local-host"], optional = true }
 
 [features]
+vault = ["dep:vault"]
+query = ["dep:inf-source", "dep:inf-value"]
 legacy-redb-migration = ["cybergraph/legacy-redb-migration"]
