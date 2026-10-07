@@ -1,0 +1,99 @@
+# ---
+# tags: neuron, auth, config
+# crystal-type: source
+# crystal-domain: comp
+# ---
+[package]
+name = "neuron-auth"
+version.workspace = true
+edition.workspace = true
+description = "neuron authority: native secp256k1 identity (NeuronId = Hemera(pubkey)), NSIG1 statement authentication, domain-scoped keys and the legacy-key bridge"
+license-file.workspace = true
+
+[features]
+# Phase 2 — provable verification: secp256k1 emulated as Goldilocks limbs
+# (`proof::curve`/`ecdsa`/`field`/`ripemd160`/`scalar`/`sha256`, all of
+# `nebu`-backed), and the nox→zheng proving pipeline built on it
+# (`proof::prove`, milestone 2e). off by default: pulls the whole proof
+# system, including `nebu` — measured cost to a downstream wasm build is
+# real (~65KB brotli, found migrating lytics's tracker onto `mudra::domain`;
+# the base field-emulation layer alone, before nox/zheng, was already most
+# of it). nothing outside `proof` itself references `nebu` or `proof::`.
+# enable with `cargo test --features prove`.
+prove = ["dep:nebu", "dep:nox", "dep:zheng"]
+
+# the legacy-key bridge's HD-derivation path (BIP-32/39, Cosmos coin type
+# 118) — `spell.rs`, and `claim`/`cosmos`'s recovery-of-an-existing-account
+# use. on by default (mudra's own CLI/tests need it); off for a downstream
+# crate that only wants fresh domain-scoped identity (`domain.rs`) and
+# cannot afford bip32/bip39 in its build — e.g. a wasm bundle, where bip32's
+# HMAC-SHA512 ladder and bip39's 2048-word list are exactly the weight
+# `domain.rs` exists to avoid. `domain`/`claim::sign_arbitrary`/`cosmos` do
+# not need this feature; only `spell` and `claim::create`/`verify`'s
+# BIP-32-recovered-key call sites do.
+default = ["bridge"]
+bridge = ["dep:bip32", "dep:bip39"]
+
+[lib]
+name = "neuron_auth"
+path = "src/lib.rs"
+
+[dependencies]
+neuron-id = { version = "0.1", path = "../id" }
+# native neuron identity: neuron = Hemera(pubkey)
+hemera = { package = "cyber-hemera", version = "0.3", path = "../../hemera/rs" }
+
+# phase 2 — provable verification: secp256k1 emulated as Goldilocks limbs.
+# behind `prove` — see the feature doc above.
+nebu = { package = "strata-nebu", version = "0.1", path = "../../strata/nebu/rs", optional = true }
+
+# phase 2e — actual proving pipeline (nox program → zheng proof). Heavy; opt-in.
+nox = { package = "cyber-nox", version = "0.3", path = "../../nox/rs", optional = true }
+zheng = { version = "0.4", path = "../../zheng/rs", optional = true }
+
+# secp256k1 — always on: `domain.rs` (fresh identity) and `claim.rs`'s
+# general ADR-036 sign/verify need it with or without the `bridge` feature.
+# depended on directly (not through bip32's re-export) so it stays
+# available with `bridge` off; version pinned to match bip32 0.5's own
+# k256 pin so both resolve to the same crate when `bridge` is on.
+# `default-features = false`: cargo unifies features across the whole
+# dependency graph, so leaving k256's defaults on here would silently
+# re-enable them for every downstream crate too, regardless of what that
+# crate itself requested — found live, migrating lytics's wasm tracker
+# onto this crate: lytics-event's own `k256 = { default-features = false,
+# features = ["ecdsa", "arithmetic", "alloc"] }` (dropping precomputed
+# tables, pkcs8/pem/serde/schnorr/ecdh — an explicit, measured size cut)
+# was silently overridden back to k256's full default feature set by this
+# line alone, ~65KB of the ~89KB the migration first appeared to cost.
+k256 = { version = "0.13", default-features = false, features = ["ecdsa", "arithmetic", "alloc"] }
+sha2 = "0.10"
+ripemd = "0.1"
+bech32 = "0.11"
+base64 = "0.22"
+
+# phase 1 — legacy-key bridge (spacepussy migration): HD derivation at the
+# Cosmos path. behind `bridge` — see the feature doc above.
+bip39 = { version = "2", features = ["rand"], optional = true }
+bip32 = { version = "0.5", optional = true }
+
+# NOTE: the post-quantum modules (seal/stealth/veil/quorum/delay) will re-add the
+# strata algebra crates when implemented:
+#   nebu   = { path = "../../strata/nebu/rs" }
+#   genies = { path = "../strata/genies/rs" }
+#   jali   = { path = "../strata/jali/rs" }
+
+[[bin]]
+name = "neuron-auth"
+path = "src/bin/neuron-auth.rs"
+required-features = ["bridge"]
+
+[[example]]
+name = "migrate"
+path = "examples/migrate.rs"
+required-features = ["bridge"]
+
+[dev-dependencies]
+serde_json = "1"
+hex = "0.4"
+# independent references for the phase-2 gadget tests only
+num-bigint = "0.4"

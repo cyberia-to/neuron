@@ -1,5 +1,5 @@
-//! Local ward/vault adapter using mudra's existing native signing profile.
-use mudra::{SigningKey, claim, cosmos};
+//! Local ward/vault adapter using neuron-auth's native signing profile (formerly mudra).
+use neuron_auth::{SigningKey, claim, cosmos};
 use neuron_engine::{Action, Authority, Error};
 use neuron_model::{NeuronId, Particle};
 use std::{
@@ -25,11 +25,11 @@ impl SigningVault for KeyVault {
         claim::neuron_of(&cosmos::compressed(self.key.verifying_key()))
     }
     fn sign(&self, subject: NeuronId, statement: Particle) -> Result<Vec<u8>, Error> {
-        mudra::neuron::sign(&self.key, subject, statement).map_err(|_| Error::Denied)
+        neuron_auth::neuron::sign(&self.key, subject, statement).map_err(|_| Error::Denied)
     }
 }
 pub fn verify_evidence(subject: NeuronId, statement: Particle, evidence: &[u8]) -> bool {
-    mudra::neuron::verify_statement(subject, statement, evidence)
+    neuron_auth::neuron::verify_statement(subject, statement, evidence)
 }
 
 #[derive(Clone, Debug)]

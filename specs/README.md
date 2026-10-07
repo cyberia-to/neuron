@@ -29,7 +29,10 @@ belong in [audit](../../soft3/audit/neuron-cell/implementation.md).
 | [Lifecycle](lifecycle.md) | Program management, task cancellation and host placement |
 | [Execution](execution.md) | Runtime/checkpoint/act/observation contracts |
 | [Authority](authority.md) | Current host-bound grants and independent publication verification |
-| [Local authority](local-authority.md) | Existing H(pubkey) and exact NSIG1 profile |
+| [Local authority](local-authority.md) | Existing H(pubkey) and exact NSIG1 profile and envelope |
+| [Proof-based authority](proof-authority.md) | The native target: private proofs of programmable authority (from mudra) |
+| [Bridge](bridge.md), [bridge proof](bridge-proof.md) | Legacy secp256k1 key → native neuron claim; its zheng re-expression (from mudra) |
+| [Measures](measures.md) | Every scalar the protocol attaches to a neuron (from mudra) |
 | [Worker dispatch](worker-dispatch.md) | Existing worker selection, generations and guarded handoff |
 | [History](history.md) | Shared graph/BBG persistence, receipts, closure and retention |
 | [Communication](communication.md) | Typed delivery, read/write/trade, durable cursors |

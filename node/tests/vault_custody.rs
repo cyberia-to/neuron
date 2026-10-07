@@ -53,7 +53,7 @@ fn encrypted_custody_signs_real_transitions_and_revocation_stops_publication() {
         let evidence = r.reference(f[5]).unwrap();
         // Evidence is a plain Blob; no spell/root/private-key is graph content.
         let bytes = r.content(evidence).unwrap().bytes;
-        assert!(mudra::neuron::verify_statement(id, statement, &bytes));
+        assert!(neuron_auth::neuron::verify_statement(id, statement, &bytes));
     }
     let head = agent.graph.head(id).unwrap();
     let mut next = grant.get().unwrap();

@@ -293,13 +293,13 @@ fn key(path: &Path) -> Result<KeyVault> {
     if bytes.len() != 32 {
         return Err("key file must contain one 32-byte scalar".into());
     }
-    let result = mudra::SigningKey::from_slice(&bytes).map_err(|_| "invalid signing key");
+    let result = neuron_auth::SigningKey::from_slice(&bytes).map_err(|_| "invalid signing key");
     bytes.fill(0);
     Ok(KeyVault::new(result?))
 }
 fn keygen(path: &Path) -> Result<Value> {
     let mut bytes = nonce(None)?;
-    let signing = mudra::SigningKey::from_slice(&bytes)
+    let signing = neuron_auth::SigningKey::from_slice(&bytes)
         .map_err(|_| "random scalar rejected; retry keygen")?;
     let vault = KeyVault::new(signing);
     let mut options = std::fs::OpenOptions::new();
