@@ -243,7 +243,7 @@ Dependency ownership stays explicit:
 | body | Physical placement resources, devices and process supervision |
 | name, state | Name resolution and verified external-state access |
 | soma | Meaning and execution strategy of agent tasks |
-| cyb | Product composition, native window/chrome and interaction |
+| cyb | Product composition, native window/chroma and interaction |
 
 The repository unifies cell mechanisms across scales. The existing stack
 repositories supply their own mechanisms as dependencies.
