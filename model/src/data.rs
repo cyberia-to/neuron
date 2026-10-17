@@ -448,7 +448,10 @@ mod tests {
         let record = b.record("cell/test-record/1", &[f0, f1]).unwrap();
 
         let mut r = Reader::new(&b, 100);
-        assert_eq!(r.record(record, "cell/test-record/1", 2).unwrap(), vec![f0, f1]);
+        assert_eq!(
+            r.record(record, "cell/test-record/1", 2).unwrap(),
+            vec![f0, f1]
+        );
 
         let mut r = Reader::new(&b, 100);
         assert!(matches!(
