@@ -1,4 +1,5 @@
-use cell_model::{Builder, Error, Head, Lifecycle, Particle, Reader, Snapshot, Value};
+#![cfg(feature = "records")]
+use neuron_model::{Builder, Error, Head, Lifecycle, Particle, Reader, Snapshot, Value};
 use std::collections::BTreeMap;
 
 fn particle(byte: u8) -> Particle {
@@ -76,12 +77,21 @@ fn lifecycle_variants_encode_to_distinct_and_deterministic_particles() {
         .collect();
     for i in 0..ids.len() {
         for j in (i + 1)..ids.len() {
-            assert_ne!(ids[i], ids[j], "{} vs {}", variants[i].name(), variants[j].name());
+            assert_ne!(
+                ids[i],
+                ids[j],
+                "{} vs {}",
+                variants[i].name(),
+                variants[j].name()
+            );
         }
     }
     // a fresh Builder must encode the same variant to the same particle:
     // Snapshot::read's lifecycle lookup depends on this determinism.
-    assert_eq!(ids[0], Lifecycle::Installed.encode(&mut Builder::new()).unwrap());
+    assert_eq!(
+        ids[0],
+        Lifecycle::Installed.encode(&mut Builder::new()).unwrap()
+    );
 }
 
 #[test]
