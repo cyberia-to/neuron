@@ -36,7 +36,7 @@ impl Drop for Directory {
     }
 }
 pub fn authority() -> (LocalAuthority<KeyVault>, GrantHandle) {
-    let vault = KeyVault::new(mudra::SigningKey::from_bytes((&[7u8; 32]).into()).unwrap());
+    let vault = KeyVault::new(neuron_auth::SigningKey::from_bytes((&[7u8; 32]).into()).unwrap());
     let grant = GrantHandle::new(Grant {
         neuron: vault.subject(),
         network: NETWORK,

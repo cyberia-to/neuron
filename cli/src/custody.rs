@@ -47,7 +47,7 @@ impl Selection {
                     path: self
                         .vault_path
                         .clone()
-                        .unwrap_or_else(|| mudra::spell::COSMOS_PATH.into()),
+                        .unwrap_or_else(|| neuron_auth::spell::COSMOS_PATH.into()),
                     hrp,
                 },
             };

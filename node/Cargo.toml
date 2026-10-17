@@ -8,7 +8,7 @@ neuron-model.workspace = true
 neuron-engine.workspace = true
 neuron-rune.workspace = true
 cybergraph.workspace = true
-mudra = { package = "cyber-mudra", path = "../../mudra", default-features = false }
+neuron-auth = { path = "../auth", default-features = false }
 inf-source = { path = "../../inf/rs/source", optional = true }
 inf-value = { path = "../../inf/rs/value", optional = true }
 vault = { package = "cyber-vault", path = "../../vault", default-features = false, features = ["local-host"], optional = true }

@@ -1,5 +1,5 @@
 [workspace]
-members = ["id", "model", "engine", "rune", "node", "cli"]
+members = ["id", "auth", "model", "engine", "rune", "node", "cli"]
 resolver = "2"
 
 [workspace.package]
@@ -9,6 +9,7 @@ license-file = "LICENSE"
 
 [workspace.dependencies]
 neuron-id = { path = "id" }
+neuron-auth = { path = "auth", default-features = false }
 neuron-model = { path = "model" }
 neuron-engine = { path = "engine" }
 neuron-rune = { path = "rune" }
