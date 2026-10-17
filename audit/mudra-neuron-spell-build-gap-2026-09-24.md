@@ -1,5 +1,7 @@
 # neuron's clean checkout does not build: it targets mudra APIs not yet on mudra's origin
 
+> Status 2026-10-17: resolved. mudra#2 (merged 2026-10-10) put `mudra::neuron` and `mudra::spell` on mudra's master. neuron's clean checkout is still red, now for a different reason: see [clean-checkout-2026-10-17](clean-checkout-2026-10-17.md). The record below is unchanged from 2026-09-24.
+
 Property #39 — every phase-1 component builds and tests from a clean checkout
 of its default branch against the default branches of its siblings.
 Lane C · content, filed against neuron because that is where the build fails.
